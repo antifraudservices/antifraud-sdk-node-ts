@@ -1,0 +1,55 @@
+# Antifraud SDK Node
+
+Node.js adapters for backend-for-frontend applications and services that use the neutral antifraud contracts.
+
+## Status
+
+Public implementation foundation. No package has been published and no production readiness is claimed yet.
+
+## Responsibility
+
+This package will implement Node.js transport and server-side adapters over [antifraud-sdk-core-ts](https://github.com/antifraudservices/antifraud-sdk-core-ts), including:
+
+- trusted-verifier HTTP clients;
+- index-provider HTTP clients;
+- opaque transaction continuity;
+- timeout, retry, cancellation, and error mapping;
+- server-side credential retrieval;
+- optional OpenID for Verifiable Credential Issuance client support when the provider exposes that protocol.
+
+It will not contain React components, product screens, ledger deployment code, provider signing keys, or tenant-specific configuration.
+
+## Browser, backend, and provider boundary
+
+A browser starts a presentation through its application backend. The backend may protect transaction continuity and call a trusted verifier, but it does not turn presentation verification into credential issuance.
+
+After verification, an authorized index provider performs authoritative readback and signs the requested credential. The backend receives a signed credential or reference according to the provider contract. It never receives the signing authority.
+
+OpenID for Verifiable Presentations and the High Assurance Interoperability Profile cover wallet presentation. OpenID for Verifiable Credential Issuance, when used, covers issuance. Adapters must keep their endpoints, states, errors, and audit events separate.
+
+## Security boundary
+
+This public repository contains reusable code only. Secrets, trust anchors, live endpoints, tenant identifiers, personal data, and environment manifests remain outside the package.
+
+Opaque transaction identifiers may be retained only for the documented lifetime of the flow. Verifiable presentations and disclosed claims must not be written to logs or generic session storage.
+
+## Dependency direction
+
+```text
+antifraud-data-utils-ts
+          ↓
+antifraud-sdk-core-ts
+          ↓
+antifraud-sdk-node-ts
+          ↓
+backend-for-frontend applications and services
+```
+
+## Implementation gate
+
+The first implementation increment requires contract tests against a local verifier/provider fixture, then integration proof against an explicitly named environment. Fixtures never count as real identity verification or credential issuance.
+
+## License
+
+Apache-2.0.
+
