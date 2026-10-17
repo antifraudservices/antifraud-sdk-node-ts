@@ -33,6 +33,26 @@ This public repository contains reusable code only. Secrets, trust anchors, live
 
 Opaque transaction identifiers may be retained only for the documented lifetime of the flow. Verifiable presentations and disclosed claims must not be written to logs or generic session storage.
 
+## Workforce adapter boundary
+
+Backend adapters load the employee assignment, current group membership, and
+controller-managed group authorization from trusted server sources. A browser
+must not submit those facts as authority. A separate subject or lawful
+representative authorization is loaded only when the use case requires it.
+There is no employee-specific Consent created for group membership.
+
+Invitation acceptance and later department, group, suspension, or reactivation
+changes are notified as Communication records. Adapters may transport those
+notices, but a notification never grants a capability. Product backends remain
+responsible for choosing the relevant group purpose and for enforcing any
+domain-specific subject authorization.
+
+For qualification evidence, a backend adapter resolves an awarding
+organization through a trusted directory using legal identifier and
+jurisdiction. It must preserve whether a proof was issued by the source or is
+an employer's own attestation and must never promote browser-entered display
+text into issuer authority.
+
 ## Dependency direction
 
 ```text
@@ -52,4 +72,3 @@ The first implementation increment requires contract tests against a local verif
 ## License
 
 Apache-2.0.
-
