@@ -8,6 +8,8 @@
   department, group, invitation, acceptance, employee membership, lifecycle
   and purge methods.
 - Reject caller-owned organization authority in every controller mutation.
+- Add addressed Clearing House inbox and decision methods for controller
+  administration.
 
 ## 0.1.0 - 2026-10-17
 
