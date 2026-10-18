@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.2.2 - 2026-10-18
+
+- Pin `antifraud-sdk-core-ts@0.1.2` so backend applications can use the
+  explicit participant-resolved, identity-resolved and not-resolved
+  qualification issuer contract.
+- Pin `antifraud-data-utils-ts@0.1.3` for the canonical confidential-document
+  graph, governed CID validator and shared synthetic fixture.
+
 ## 0.2.1 - 2026-10-17
 
 - Reuse the canonical credential-issuance request and receipt contract from

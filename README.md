@@ -4,7 +4,7 @@ Node.js adapters for backend-for-frontend applications and services that use the
 
 ## Status
 
-Public implementation foundation. Version `0.2.1` provides controller
+Public implementation foundation. Version `0.2.2` provides controller
 administration and evidence clients plus the Node HTTP adapter for the shared
 credential-issuance controller. No production readiness is claimed yet.
 

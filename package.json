@@ -1,6 +1,6 @@
 {
   "name": "antifraud-sdk-node-ts",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Node.js adapters for neutral antifraud verification and credential-provider workflows",
   "type": "module",
   "main": "./dist/index.js",
@@ -34,7 +34,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "antifraud-data-utils-ts": "0.1.1",
-    "antifraud-sdk-core-ts": "0.1.1"
+    "antifraud-data-utils-ts": "0.1.3",
+    "antifraud-sdk-core-ts": "0.1.2"
   }
 }
