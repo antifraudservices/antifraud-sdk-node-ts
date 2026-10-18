@@ -4,7 +4,8 @@ Node.js adapters for backend-for-frontend applications and services that use the
 
 ## Status
 
-Public implementation foundation. Version `0.1.0` is published for local and
+Public implementation foundation. Version `0.2.0` provides controller
+administration and evidence clients for local and
 backend integration testing. No production readiness is claimed yet.
 
 ## Responsibility
@@ -18,6 +19,7 @@ This package will implement Node.js transport and server-side adapters over [ant
 - server-side credential retrieval;
 - optional OpenID for Verifiable Credential Issuance client support when the provider exposes that protocol.
 - authenticated identity-evidence and education-qualification gateway writes.
+- authenticated organization-controller workspace reads and mutations.
 
 It will not contain React components, product screens, ledger deployment code, provider signing keys, or tenant-specific configuration.
 
@@ -68,6 +70,11 @@ trusted server context.
 age-over evidence. `recordQualificationEvidence(...)` records an employer's
 attestation about a qualification document and its content identifier. Neither
 method turns an employer statement into an issuer credential.
+
+`readControllerWorkspace(...)` reads the authenticated organization's
+authoritative administration state. Department, group, invitation,
+membership, lifecycle and purge methods never accept an organization reference
+from the caller; the gateway derives it from the bearer credential.
 
 ## Dependency direction
 

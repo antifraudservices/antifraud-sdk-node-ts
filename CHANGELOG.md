@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.2.0 - 2026-10-17
+
+- Add authenticated controller workspace readback and organization-scoped
+  department, group, invitation, acceptance, employee membership, lifecycle
+  and purge methods.
+- Reject caller-owned organization authority in every controller mutation.
+
 ## 0.1.0 - 2026-10-17
 
 - Add trusted-verifier and authoritative credential-provider HTTP adapters.
