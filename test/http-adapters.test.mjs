@@ -148,3 +148,38 @@ test('calls neutral identity and qualification gateway routes without client-own
     assert.equal(request.init.body.includes('smartContract'), false)
   }
 })
+
+test('reads and mutates controller administration without caller-owned organization authority', async () => {
+  const requests = []
+  const client = new AntifraudGatewayClient({
+    baseUrl: 'https://gateway.example',
+    bearerCredential: async () => 'controller-bearer',
+    fetch: async (url, init) => {
+      requests.push({url: String(url), init})
+      if (!init || init.method === 'GET') return jsonResponse(200, {organization: {reference: 'organization:one'}, departments: []})
+      return jsonResponse(init.method === 'POST' ? 201 : 200, {ok: true})
+    },
+  })
+
+  await client.readControllerWorkspace()
+  await client.createControllerDepartment({name: 'Operations'})
+  await client.createControllerGroup({name: 'Reviewers', capabilities: ['identity.evidence.record']})
+  await client.createControllerInvitation({email: 'reviewer@example.invalid', role: 'Reviewer', groupReferences: [], departmentReferences: []})
+  await client.setControllerEmployeeStatus('employee:one', 'inactive')
+  await client.setControllerEmployeeMemberships('employee:one', {groupReferences: [], departmentReferences: []})
+  await client.purgeControllerEmployee('employee:one')
+
+  await assert.rejects(
+    client.createControllerDepartment({name: 'Injected', organizationReference: 'organization:other'}),
+    /server-owned actor and organization authority/i,
+  )
+  assert.deepEqual(requests.map(request => [request.init?.method ?? 'GET', request.url]), [
+    ['GET', 'https://gateway.example/v1/controller/workspace'],
+    ['POST', 'https://gateway.example/v1/controller/departments'],
+    ['POST', 'https://gateway.example/v1/controller/groups'],
+    ['POST', 'https://gateway.example/v1/controller/invitations'],
+    ['PUT', 'https://gateway.example/v1/controller/employees/employee%3Aone/status'],
+    ['PUT', 'https://gateway.example/v1/controller/employees/employee%3Aone/memberships'],
+    ['DELETE', 'https://gateway.example/v1/controller/employees/employee%3Aone'],
+  ])
+})
