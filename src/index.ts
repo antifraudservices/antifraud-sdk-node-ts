@@ -1,3 +1,4 @@
 export * from './authoritative-credential-provider-client.js'
 export * from './antifraud-gateway-client.js'
+export * from './didcomm-document-transport.js'
 export * from './eudi-verifier-client.js'

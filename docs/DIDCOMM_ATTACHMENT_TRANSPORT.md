@@ -5,13 +5,14 @@ more `MediaObject` encodings. The Node adapter transports the corresponding
 binary in DIDComm `attachments[]`; it never creates a FHIR
 `DocumentReference`.
 
-The implementation order is:
+The released implementation:
 
-1. consume the released data-utils inline and linked attachment contract;
-2. consume the released SDK Core orchestration;
-3. enforce media allowlists, byte limits and exact CID/digest checks;
-4. support bounded `data.base64` and authorized `data.links + data.hash`;
-5. prove PDF and at least one non-PDF type without logging bytes or secrets;
-6. prove tampering, replay, cross-tenant denial and timeout behavior.
+1. consumes the released data-utils inline and linked attachment contract;
+2. composes the released SDK Core orchestration;
+3. enforces media allowlists, byte limits and exact CID/digest checks;
+4. supports bounded `data.base64` and authorized `data.links + data.hash`;
+5. proves a minimal PDF, protected-link transport, tampering rejection,
+   idempotent replay and server-owned routing without logging bytes or secrets.
 
-Track execution in [GitHub issue #5](https://github.com/antifraudservices/antifraud-sdk-node-ts/issues/5).
+Additional media types, timeout handling and a real environment delivery remain
+separate acceptance gates; local HTTP fixtures are not deployment evidence.
