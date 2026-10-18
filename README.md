@@ -82,6 +82,16 @@ with the runtime-neutral state and polling rules from `antifraud-sdk-core-ts`.
 Canonical request validation and wire conversion remain owned by
 `antifraud-data-utils-ts`; this package does not maintain a second copy.
 
+## DIDComm binary attachment transport
+
+The trusted Node adapter will transport governed files through DIDComm
+`attachments[]`: bounded files use `data.base64`; protected files use
+`data.links + data.hash`. Media type, exact byte count and multihash are
+validated against the canonical Schema.org `MediaObject`. PDF, spreadsheet,
+Word, image, video and other allowed media types share this contract. No FHIR
+resource or `DocumentReference` belongs in Antifraud. Implementation is
+tracked in [GitHub issue #5](https://github.com/antifraudservices/antifraud-sdk-node-ts/issues/5).
+
 ## Dependency direction
 
 ```text
