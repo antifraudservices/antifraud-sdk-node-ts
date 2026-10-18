@@ -8,3 +8,6 @@
   changes.
 - Define trusted awarding-organization lookup by legal identifier and
   jurisdiction while preserving employer and source proof provenance.
+- Add the authenticated neutral gateway client for identity evidence and
+  education qualification evidence. The client rejects browser-supplied
+  actor, zone, channel and smart-contract authority.

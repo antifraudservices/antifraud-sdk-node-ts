@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
+  AntifraudGatewayClient,
   AuthoritativeCredentialProviderClient,
   EudiVerifierClient,
 } from '../dist/index.js'
@@ -98,3 +99,52 @@ test('requests provider issuance with references and rejects caller claims', asy
   })
 })
 
+test('calls neutral identity and qualification gateway routes without client-owned actor or infrastructure', async () => {
+  const requests = []
+  const client = new AntifraudGatewayClient({
+    baseUrl: 'https://gateway.example',
+    bearerCredential: async () => 'opaque-bearer',
+    fetch: async (url, init) => {
+      requests.push({url, init})
+      if (String(url).endsWith('/v1/identity/evidence')) return jsonResponse(201, {
+        channel: 'identity-global', transactionId: 'tx:identity:1',
+        anchor: {evidenceId: 'identity-evidence:001', targetKinds: ['predicate']},
+      })
+      return jsonResponse(201, {
+        channel: 'qualification-education-eu', transactionId: 'tx:qualification:1',
+        status: 'pending-issuer-confirmation', anchor: {evidenceId: 'qualification-evidence:001'},
+      })
+    },
+  })
+
+  await assert.rejects(() => client.recordIdentityEvidence({
+    operationId: 'identity-evidence:bad', subjectReference: 'person:opaque', targets: [], evidence: [],
+    encryptedClaims: 'jwe', actor: {employeeReference: 'browser-injected'},
+  }), /server-owned actor/i)
+
+  const identity = await client.recordIdentityEvidence({
+    operationId: 'identity-evidence:001', subjectReference: 'person:employee:opaque',
+    targets: [{kind: 'predicate', predicate: 'age-over', sourceSubjectReference: 'person:employee:opaque', sourceClaimPath: 'org.schema.Person.birthDate', threshold: 21, result: true}],
+    evidence: [{id: 'check:001', type: 'document', observedAt: '2026-10-17T20:00:00.000Z', checks: [{checkMethod: 'document-review', checkId: 'review:001'}]}],
+    encryptedClaims: 'jwe.identity.001',
+  })
+  assert.equal(identity.channel, 'identity-global')
+
+  const qualification = await client.recordQualificationEvidence({
+    evidenceId: 'qualification-evidence:001', subjectReference: 'person:employee:opaque',
+    issuer: {legalIdentifier: 'EXAMPLE-UNIVERSITY', jurisdiction: 'ES'},
+    qualificationReference: 'qualification:opaque', documentCid: 'zQmOpaque',
+    encryptedClaims: 'jwe.qualification.001',
+  })
+  assert.equal(qualification.channel, 'qualification-education-eu')
+  assert.deepEqual(requests.map(request => request.url), [
+    'https://gateway.example/v1/identity/evidence',
+    'https://gateway.example/v1/education/qualification-evidence',
+  ])
+  for (const request of requests) {
+    assert.equal(request.init.headers.authorization, 'Bearer opaque-bearer')
+    assert.equal(request.init.body.includes('actor'), false)
+    assert.equal(request.init.body.includes('channel'), false)
+    assert.equal(request.init.body.includes('smartContract'), false)
+  }
+})

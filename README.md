@@ -16,6 +16,7 @@ This package will implement Node.js transport and server-side adapters over [ant
 - timeout, retry, cancellation, and error mapping;
 - server-side credential retrieval;
 - optional OpenID for Verifiable Credential Issuance client support when the provider exposes that protocol.
+- authenticated identity-evidence and education-qualification gateway writes.
 
 It will not contain React components, product screens, ledger deployment code, provider signing keys, or tenant-specific configuration.
 
@@ -52,6 +53,20 @@ organization through a trusted directory using legal identifier and
 jurisdiction. It must preserve whether a proof was issued by the source or is
 an employer's own attestation and must never promote browser-entered display
 text into issuer authority.
+
+## Neutral gateway client
+
+`AntifraudGatewayClient` is the backend-for-frontend adapter for the current
+identity-evidence and education-qualification routes. The application supplies
+an opaque bearer credential through a server callback. The client never accepts
+the authenticated employee, organization, group authorization, zone, channel,
+or smart-contract name from browser input. The gateway derives those facts from
+trusted server context.
+
+`recordIdentityEvidence(...)` records subject identity, relationship, or
+age-over evidence. `recordQualificationEvidence(...)` records an employer's
+attestation about a qualification document and its content identifier. Neither
+method turns an employer statement into an issuer credential.
 
 ## Dependency direction
 
