@@ -1,49 +1,23 @@
-export interface CredentialIssuanceRequest {
-  subjectReference: string
-  capability: string
-  verificationTransactionId: string
-}
+import {
+  parseCredentialIssuanceReceiptWire,
+  toCredentialIssuanceRequestWire,
+  type CredentialIssuanceReceipt,
+  type CredentialIssuanceRequest,
+} from 'antifraud-data-utils-ts'
+import {
+  createCredentialIssuanceController,
+  type CredentialIssuanceController,
+  type CredentialIssuanceControllerOptions,
+} from 'antifraud-sdk-core-ts'
 
-export type CredentialIssuanceStatus = 'pending' | 'issued' | 'denied' | 'failed'
-
-export interface CredentialIssuanceReceipt {
-  issuanceId: string
-  status: CredentialIssuanceStatus
-  credential?: unknown
-  credentialReference?: string
-  reason?: string
-}
+export type {
+  CredentialIssuanceReceipt,
+  CredentialIssuanceRequest,
+} from 'antifraud-data-utils-ts'
 
 export interface AuthoritativeCredentialProviderClientOptions {
   baseUrl: string
   fetch?: typeof globalThis.fetch
-}
-
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === 'string' && value.length > 0
-}
-
-function parseReceipt(value: unknown): CredentialIssuanceReceipt {
-  if (!value || typeof value !== 'object') {
-    throw new Error('Invalid credential-provider response')
-  }
-  const candidate = value as Record<string, unknown>
-  const status = candidate.status
-  if (
-    !isNonEmptyString(candidate.issuance_id)
-    || (status !== 'pending' && status !== 'issued' && status !== 'denied' && status !== 'failed')
-  ) {
-    throw new Error('Invalid credential-provider response')
-  }
-  return {
-    issuanceId: candidate.issuance_id,
-    status,
-    ...('credential' in candidate ? { credential: candidate.credential } : {}),
-    ...(isNonEmptyString(candidate.credential_reference)
-      ? { credentialReference: candidate.credential_reference }
-      : {}),
-    ...(isNonEmptyString(candidate.reason) ? { reason: candidate.reason } : {}),
-  }
 }
 
 export class AuthoritativeCredentialProviderClient {
@@ -64,16 +38,12 @@ export class AuthoritativeCredentialProviderClient {
     const response = await this.fetch(`${this.baseUrl}/credential-issuances`, {
       method: 'POST',
       headers: { accept: 'application/json', 'content-type': 'application/json' },
-      body: JSON.stringify({
-        subject_reference: input.subjectReference,
-        capability: input.capability,
-        verification_transaction_id: input.verificationTransactionId,
-      }),
+      body: JSON.stringify(toCredentialIssuanceRequestWire(input)),
     })
     if (!response.ok) {
       throw new Error(`Credential issuance request failed with HTTP ${response.status}`)
     }
-    return parseReceipt(await response.json())
+    return parseCredentialIssuanceReceiptWire(await response.json())
   }
 
   async getIssuance(issuanceId: string): Promise<CredentialIssuanceReceipt> {
@@ -84,7 +54,24 @@ export class AuthoritativeCredentialProviderClient {
     if (!response.ok) {
       throw new Error(`Credential issuance lookup failed with HTTP ${response.status}`)
     }
-    return parseReceipt(await response.json())
+    return parseCredentialIssuanceReceiptWire(await response.json())
   }
 }
 
+export interface AuthoritativeCredentialIssuanceControllerOptions
+  extends AuthoritativeCredentialProviderClientOptions {
+  wait?: CredentialIssuanceControllerOptions['wait']
+}
+
+function waitWithTimer(milliseconds: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, milliseconds))
+}
+
+export function createAuthoritativeCredentialIssuanceController(
+  options: AuthoritativeCredentialIssuanceControllerOptions,
+): CredentialIssuanceController {
+  return createCredentialIssuanceController({
+    provider: new AuthoritativeCredentialProviderClient(options),
+    wait: options.wait ?? waitWithTimer,
+  })
+}

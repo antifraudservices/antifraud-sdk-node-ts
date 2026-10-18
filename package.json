@@ -1,6 +1,6 @@
 {
   "name": "antifraud-sdk-node-ts",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Node.js adapters for neutral antifraud verification and credential-provider workflows",
   "type": "module",
   "main": "./dist/index.js",
@@ -11,17 +11,30 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist", "README.md", "LICENSE", "CHANGELOG.md"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "npm run build && node --test test/*.test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
-  "engines": {"node": ">=24.0.0"},
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/antifraudservices/antifraud-sdk-node-ts.git"
   },
-  "devDependencies": {"typescript": "^5.9.3"}
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "antifraud-data-utils-ts": "0.1.1",
+    "antifraud-sdk-core-ts": "0.1.1"
+  }
 }
