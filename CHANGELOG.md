@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.1.0 - 2026-10-17
+
 - Add trusted-verifier and authoritative credential-provider HTTP adapters.
 - Document trusted-server loading of workforce membership and shared group
   authorization, plus separate Communication notifications for assignment

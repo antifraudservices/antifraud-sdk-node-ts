@@ -4,7 +4,8 @@ Node.js adapters for backend-for-frontend applications and services that use the
 
 ## Status
 
-Public implementation foundation. No package has been published and no production readiness is claimed yet.
+Public implementation foundation. Version `0.1.0` is published for local and
+backend integration testing. No production readiness is claimed yet.
 
 ## Responsibility
 
