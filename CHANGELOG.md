@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.2.3 - 2026-10-18
+
+- Pin `antifraud-data-utils-ts@0.1.4` and `antifraud-sdk-core-ts@0.1.3`.
+- Add the trusted Node/BFF document-delivery controller for canonical
+  Schema.org graphs and inline or protected-link DIDComm attachments.
+- Verify inline SHA3-384 bytes against the canonical MediaObject, enforce
+  server-owned routing, media allowlists, byte limits, HTTPS endpoints and
+  opaque idempotent receipts without logging or persisting raw bytes.
+
 ## 0.2.2 - 2026-10-18
 
 - Pin `antifraud-sdk-core-ts@0.1.2` so backend applications can use the

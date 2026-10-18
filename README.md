@@ -84,13 +84,15 @@ Canonical request validation and wire conversion remain owned by
 
 ## DIDComm binary attachment transport
 
-The trusted Node adapter will transport governed files through DIDComm
-`attachments[]`: bounded files use `data.base64`; protected files use
-`data.links + data.hash`. Media type, exact byte count and multihash are
-validated against the canonical Schema.org `MediaObject`. PDF, spreadsheet,
-Word, image, video and other allowed media types share this contract. No FHIR
-resource or `DocumentReference` belongs in Antifraud. Implementation is
-tracked in [GitHub issue #5](https://github.com/antifraudservices/antifraud-sdk-node-ts/issues/5).
+`createTrustedDocumentDeliveryController` transports governed files through
+DIDComm `attachments[]`: bounded files use `data.base64`; protected files use
+`data.links + data.hash`. The trusted server supplies sender, recipient and
+service bindings plus the media allowlist and inline byte limit. Inline bytes
+are hashed with SHA3-384 and checked against the canonical Schema.org
+`MediaObject`; the released Core controller keeps replay idempotent and stores
+only opaque continuity. PDF, spreadsheet, Word, image, video and other allowed
+media types share this contract. No FHIR resource or `DocumentReference`
+belongs in Antifraud.
 
 ## Dependency direction
 
