@@ -4,9 +4,9 @@ Node.js adapters for backend-for-frontend applications and services that use the
 
 ## Status
 
-Public implementation foundation. Version `0.2.0` provides controller
-administration and evidence clients for local and
-backend integration testing. No production readiness is claimed yet.
+Public implementation foundation. Version `0.2.1` provides controller
+administration and evidence clients plus the Node HTTP adapter for the shared
+credential-issuance controller. No production readiness is claimed yet.
 
 ## Responsibility
 
@@ -75,6 +75,12 @@ method turns an employer statement into an issuer credential.
 authoritative administration state. Department, group, invitation,
 membership, lifecycle and purge methods never accept an organization reference
 from the caller; the gateway derives it from the bearer credential.
+
+`AuthoritativeCredentialProviderClient` implements only provider HTTP
+transport. `createAuthoritativeCredentialIssuanceController(...)` composes it
+with the runtime-neutral state and polling rules from `antifraud-sdk-core-ts`.
+Canonical request validation and wire conversion remain owned by
+`antifraud-data-utils-ts`; this package does not maintain a second copy.
 
 ## Dependency direction
 

@@ -5,6 +5,7 @@ import test from 'node:test'
 import {
   AntifraudGatewayClient,
   AuthoritativeCredentialProviderClient,
+  createAuthoritativeCredentialIssuanceController,
   EudiVerifierClient,
 } from '../dist/index.js'
 
@@ -97,6 +98,38 @@ test('requests provider issuance with references and rejects caller claims', asy
     capability: 'identity.relationship.attest',
     verification_transaction_id: 'opaque-transaction',
   })
+})
+
+test('composes the Node HTTP adapter with Core issuance orchestration', async () => {
+  const responses = [
+    {issuance_id: 'opaque-issuance', status: 'pending'},
+    {issuance_id: 'opaque-issuance', status: 'issued', credential_reference: 'urn:credential:opaque'},
+  ]
+  const requests = []
+  const controller = createAuthoritativeCredentialIssuanceController({
+    baseUrl: 'https://provider.example',
+    fetch: async (url, init) => {
+      requests.push({url: String(url), init})
+      return jsonResponse(init?.method === 'POST' ? 202 : 200, responses.shift())
+    },
+    wait: async () => {},
+  })
+
+  const receipt = await controller.issue({
+    subjectReference: 'urn:subject:opaque',
+    capability: 'identity.relationship.attest',
+    verificationTransactionId: 'opaque-transaction',
+  })
+
+  assert.deepEqual(receipt, {
+    issuanceId: 'opaque-issuance',
+    status: 'issued',
+    credentialReference: 'urn:credential:opaque',
+  })
+  assert.deepEqual(requests.map(request => [request.init?.method ?? 'GET', request.url]), [
+    ['POST', 'https://provider.example/credential-issuances'],
+    ['GET', 'https://provider.example/credential-issuances/opaque-issuance'],
+  ])
 })
 
 test('calls neutral identity and qualification gateway routes without client-owned actor or infrastructure', async () => {

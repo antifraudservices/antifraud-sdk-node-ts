@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.2.1 - 2026-10-17
+
+- Reuse the canonical credential-issuance request and receipt contract from
+  `antifraud-data-utils-ts` instead of maintaining Node-specific duplicates.
+- Compose the Node HTTP provider adapter with the runtime-neutral polling and
+  terminal-state controller from `antifraud-sdk-core-ts`.
+
 ## 0.2.0 - 2026-10-17
 
 - Add authenticated controller workspace readback and organization-scoped
