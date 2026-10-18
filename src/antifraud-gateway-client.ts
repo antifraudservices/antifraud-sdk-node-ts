@@ -52,6 +52,18 @@ export type ControllerWorkspace = Readonly<{
   notifications: readonly Readonly<{ reference: string; recipientReference: string; event: string; recordedAt: string }>[]
 }>
 
+export type ClearingHouseItem = Readonly<{
+  destinationOrganizationReference: string
+  evidenceLocator: string
+  sourceHostReference: string
+  channelFamily: string
+  lifecycleStatus: string
+  deliveryState: string
+  attemptCount: number
+  queuedAt: string
+  receiptReference?: string
+}>
+
 export class AntifraudGatewayClient {
   readonly #baseUrl: string
   readonly #bearerCredential: GatewayClientOptions['bearerCredential']
@@ -117,6 +129,15 @@ export class AntifraudGatewayClient {
 
   async purgeControllerEmployee(employeeReference: string): Promise<unknown> {
     return this.#request(`/v1/controller/employees/${encodeURIComponent(employeeReference)}`, 'DELETE')
+  }
+
+  async listClearingHouseInbox(): Promise<Readonly<{ items: readonly ClearingHouseItem[] }>> {
+    return this.#request('/v1/clearing-house/inbox', 'GET')
+  }
+
+  async decideClearingHouseEvidence(evidenceLocator: string, input: Readonly<{ decision: 'confirmed' | 'rejected' | 'revoked'; issuerProofReference: string }>): Promise<unknown> {
+    rejectControllerOwnedAuthority(input)
+    return this.#request(`/v1/clearing-house/evidence/${encodeURIComponent(evidenceLocator)}/decision`, 'POST', input)
   }
 
   async #post<T>(path: string, body: object): Promise<T> {
