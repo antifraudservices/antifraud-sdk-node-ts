@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.5 - 2026-10-19
+
 - Add high-level addressed-issuer evidence readback and support server-sealed
   confidential qualification claims without exposing organization, channel,
   storage or decryption authority to browser callers.
