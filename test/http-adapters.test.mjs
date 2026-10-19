@@ -109,6 +109,7 @@ test('composes the Node HTTP adapter with Core issuance orchestration', async ()
   const requests = []
   const controller = createAuthoritativeCredentialIssuanceController({
     baseUrl: 'https://provider.example',
+    bearerCredential: async () => 'provider-bearer',
     fetch: async (url, init) => {
       requests.push({url: String(url), init})
       return jsonResponse(init?.method === 'POST' ? 202 : 200, responses.shift())
@@ -130,6 +131,10 @@ test('composes the Node HTTP adapter with Core issuance orchestration', async ()
   assert.deepEqual(requests.map(request => [request.init?.method ?? 'GET', request.url]), [
     ['POST', 'https://provider.example/credential-issuances'],
     ['GET', 'https://provider.example/credential-issuances/opaque-issuance'],
+  ])
+  assert.deepEqual(requests.map(request => request.init.headers.authorization), [
+    'Bearer provider-bearer',
+    'Bearer provider-bearer',
   ])
 })
 

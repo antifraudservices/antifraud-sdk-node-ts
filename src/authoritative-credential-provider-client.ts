@@ -17,16 +17,28 @@ export type {
 
 export interface AuthoritativeCredentialProviderClientOptions {
   baseUrl: string
+  bearerCredential?: () => Promise<string>
   fetch?: typeof globalThis.fetch
 }
 
 export class AuthoritativeCredentialProviderClient {
   private readonly baseUrl: string
+  private readonly bearerCredential: (() => Promise<string>) | undefined
   private readonly fetch: typeof globalThis.fetch
 
   constructor(options: AuthoritativeCredentialProviderClientOptions) {
     this.baseUrl = options.baseUrl.replace(/\/$/, '')
+    this.bearerCredential = options.bearerCredential
     this.fetch = options.fetch ?? globalThis.fetch.bind(globalThis)
+  }
+
+  private async headers(contentType = false): Promise<Record<string, string>> {
+    const headers: Record<string, string> = { accept: 'application/json' }
+    if (contentType) headers['content-type'] = 'application/json'
+    if (this.bearerCredential) {
+      headers.authorization = `Bearer ${await this.bearerCredential()}`
+    }
+    return headers
   }
 
   async requestIssuance(
@@ -37,7 +49,7 @@ export class AuthoritativeCredentialProviderClient {
     }
     const response = await this.fetch(`${this.baseUrl}/credential-issuances`, {
       method: 'POST',
-      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      headers: await this.headers(true),
       body: JSON.stringify(toCredentialIssuanceRequestWire(input)),
     })
     if (!response.ok) {
@@ -49,7 +61,7 @@ export class AuthoritativeCredentialProviderClient {
   async getIssuance(issuanceId: string): Promise<CredentialIssuanceReceipt> {
     const response = await this.fetch(
       `${this.baseUrl}/credential-issuances/${encodeURIComponent(issuanceId)}`,
-      { headers: { accept: 'application/json' } },
+      { headers: await this.headers() },
     )
     if (!response.ok) {
       throw new Error(`Credential issuance lookup failed with HTTP ${response.status}`)

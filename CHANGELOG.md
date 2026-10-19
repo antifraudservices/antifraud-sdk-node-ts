@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Authenticate both authoritative issuance submission and receipt reload with
+  the BFF-owned bearer credential; browsers still cannot inject provider
+  authority.
 - Add the high-level confidential-artifact upload builder and Gateway client
   operations. Node BFFs now prepare one Schema.org document graph plus its
   DIDComm inline attachment, then store and retrieve exact binary bytes without
