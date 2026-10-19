@@ -12,9 +12,7 @@
   DIDComm inline attachment, then store and retrieve exact binary bytes without
   implementing CID or attachment cryptography in portals.
 
-## 0.2.4 - 2026-10-18
-
-- Pin `antifraud-data-utils-ts@0.1.7` and `antifraud-sdk-core-ts@0.1.4`.
+- Pin the exact current Data Utils and SDK Core releases.
 - Add the Node managed wallet with ML-DSA-65 actor-signing and ML-KEM-768
   document-at-rest keys; private key material never leaves wallet custody.
 - Compose the trusted BFF user-presence ceremony with the one-use Core session
