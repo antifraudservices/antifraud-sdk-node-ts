@@ -7,6 +7,7 @@ import {
   AuthoritativeCredentialProviderClient,
   createAuthoritativeCredentialIssuanceController,
   EudiVerifierClient,
+  prepareConfidentialArtifactUpload,
 } from '../dist/index.js'
 
 function jsonResponse(status, body) {
@@ -108,6 +109,7 @@ test('composes the Node HTTP adapter with Core issuance orchestration', async ()
   const requests = []
   const controller = createAuthoritativeCredentialIssuanceController({
     baseUrl: 'https://provider.example',
+    bearerCredential: async () => 'provider-bearer',
     fetch: async (url, init) => {
       requests.push({url: String(url), init})
       return jsonResponse(init?.method === 'POST' ? 202 : 200, responses.shift())
@@ -129,6 +131,10 @@ test('composes the Node HTTP adapter with Core issuance orchestration', async ()
   assert.deepEqual(requests.map(request => [request.init?.method ?? 'GET', request.url]), [
     ['POST', 'https://provider.example/credential-issuances'],
     ['GET', 'https://provider.example/credential-issuances/opaque-issuance'],
+  ])
+  assert.deepEqual(requests.map(request => request.init.headers.authorization), [
+    'Bearer provider-bearer',
+    'Bearer provider-bearer',
   ])
 })
 
@@ -219,4 +225,89 @@ test('reads and mutates controller administration without caller-owned organizat
     ['GET', 'https://gateway.example/v1/clearing-house/inbox'],
     ['POST', 'https://gateway.example/v1/clearing-house/evidence/evidence%3Aone/decision'],
   ])
+})
+
+test('stores and retrieves a confidential DIDComm attachment through the gateway', async () => {
+  const requests = []
+  const pdfBytes = Buffer.from('%PDF-1.4\n%%EOF\n')
+  const client = new AntifraudGatewayClient({
+    baseUrl: 'https://gateway.example',
+    bearerCredential: async () => 'artifact-bearer',
+    fetch: async (url, init) => {
+      requests.push({url: String(url), init})
+      if (init?.method === 'POST') return jsonResponse(201, {
+        document: {jsonapi: {version: '1.1'}, data: []},
+        artifact: {artifactId: 'zCanonicalCid', objectName: 'opaque', byteCount: pdfBytes.byteLength},
+      })
+      return new Response(pdfBytes, {
+        status: 200,
+        headers: {
+          'content-type': 'application/pdf',
+          'content-disposition': 'attachment; filename="synthetic.pdf"',
+        },
+      })
+    },
+  })
+
+  const upload = prepareConfidentialArtifactUpload({
+    bytes: pdfBytes,
+    fileName: 'synthetic.pdf',
+    mediaType: 'application/pdf',
+    attachmentId: 'attachment:one',
+    manifest: {id: 'manifest:one', name: 'Evidence set', additionalType: 'evidence-set', version: '1'},
+    document: {id: 'document:one', name: 'Synthetic PDF', additionalType: 'identity-evidence', version: '1'},
+  })
+  const stored = await client.storeConfidentialArtifact(upload)
+  assert.equal(stored.artifact.artifactId, 'zCanonicalCid')
+  assert.match(upload.document.documents[0].attachment.contentId, /^z/)
+  assert.equal(upload.attachment.byte_count, pdfBytes.byteLength)
+
+  const retrieved = await client.readConfidentialArtifact('zCanonicalCid')
+  assert.equal(retrieved.mediaType, 'application/pdf')
+  assert.equal(retrieved.fileName, 'synthetic.pdf')
+  assert.deepEqual(Buffer.from(retrieved.bytes), pdfBytes)
+  assert.deepEqual(requests.map(request => [request.init?.method ?? 'GET', request.url]), [
+    ['POST', 'https://gateway.example/v1/confidential-artifacts'],
+    ['GET', 'https://gateway.example/v1/confidential-artifacts/zCanonicalCid'],
+  ])
+})
+
+test('records and reloads a signed social publication through the authoritative Gateway', async () => {
+  const requests = []
+  const record = {
+    id: 'urn:request:publication:one', environment: 'demo', status: 'demo-recorded',
+    content: {mediaId: 'synthetic-coastline-001', caption: 'Synthetic post'},
+    proof: {status: 'verified'},
+    receipt: {adapter: 'in-memory-fabric-demo', transactionId: 'demo-memory-opaque', cryptographicProof: true},
+  }
+  const client = new AntifraudGatewayClient({
+    baseUrl: 'https://gateway.example',
+    bearerCredential: async () => 'social-bearer',
+    fetch: async (url, init) => {
+      requests.push({url: String(url), init})
+      return jsonResponse(init?.method === 'POST' ? 201 : 200, record)
+    },
+  })
+
+  const submitted = await client.recordSocialPublication({
+    content: record.content,
+    proof: {
+      proofId: 'urn:proof:one', requestId: record.id, operationId: 'urn:operation:one',
+      manifest: {id: 'urn:manifest:one', version: '1', digestAlgorithm: 'sha3-384', digest: 'A'.repeat(64)},
+      relyingParty: 'https://social-demo.antifraud.services', purpose: 'synthetic-publication-manifest-signing',
+      signerReference: 'urn:user:synthetic', algorithm: 'ML-DSA-65',
+      verificationMethod: 'did:key:synthetic#actor-signing', createdAt: '2026-10-18T12:00:00.000Z',
+      signature: 'c2lnbmF0dXJl', status: 'verified',
+    },
+  })
+  const reloaded = await client.readSocialPublication(record.id)
+
+  assert.deepEqual(submitted, record)
+  assert.deepEqual(reloaded, record)
+  assert.deepEqual(requests.map(request => [request.init?.method ?? 'GET', request.url]), [
+    ['POST', 'https://gateway.example/v1/social/publications'],
+    ['GET', 'https://gateway.example/v1/social/publications/urn%3Arequest%3Apublication%3Aone'],
+  ])
+  assert.equal(requests[0].init.headers.authorization, 'Bearer social-bearer')
+  assert.equal(Object.hasOwn(JSON.parse(requests[0].init.body), 'actor'), false)
 })

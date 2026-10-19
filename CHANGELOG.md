@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- Add authenticated high-level Gateway operations for recording and
+  authoritatively reloading the canonical proof-bound social Demo publication.
+- Authenticate both authoritative issuance submission and receipt reload with
+  the BFF-owned bearer credential; browsers still cannot inject provider
+  authority.
+- Add the high-level confidential-artifact upload builder and Gateway client
+  operations. Node BFFs now prepare one Schema.org document graph plus its
+  DIDComm inline attachment, then store and retrieve exact binary bytes without
+  implementing CID or attachment cryptography in portals.
+
+- Pin the exact current Data Utils and SDK Core releases.
+- Add the Node managed wallet with ML-DSA-65 actor-signing and ML-KEM-768
+  document-at-rest keys; private key material never leaves wallet custody.
+- Compose the trusted BFF user-presence ceremony with the one-use Core session
+  and expose verified managed-signature proofs.
+- Seal and unseal raw attachment bytes through the shared JWE cryptography so
+  gateway persistence never stores readable PDF, Word or spreadsheet bytes.
+
 ## 0.2.3 - 2026-10-18
 
 - Pin `antifraud-data-utils-ts@0.1.4` and `antifraud-sdk-core-ts@0.1.3`.

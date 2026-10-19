@@ -4,7 +4,7 @@ Node.js adapters for backend-for-frontend applications and services that use the
 
 ## Status
 
-Public implementation foundation. Version `0.2.2` provides controller
+Public implementation foundation. Version `0.2.4` provides controller
 administration and evidence clients plus the Node HTTP adapter for the shared
 credential-issuance controller. No production readiness is claimed yet.
 
@@ -93,6 +93,19 @@ are hashed with SHA3-384 and checked against the canonical Schema.org
 only opaque continuity. PDF, spreadsheet, Word, image, video and other allowed
 media types share this contract. No FHIR resource or `DocumentReference`
 belongs in Antifraud.
+
+## Managed wallet and local user presence
+
+`NodeManagedWallet` provisions separate ML-DSA-65 actor-signing and ML-KEM-768
+document-at-rest keys. Only public descriptors, managed-signature proofs and
+receipts cross the wallet boundary. `createManagedSigningBff(...)` composes the
+runtime-neutral one-use session with a trusted local user-presence adapter;
+the browser never submits authority or receives private material.
+
+Raw attachment bytes are sealed as JWE through `protectArtifactBytes(...)`
+and recovered only through `unprotectArtifactBytes(...)` after authorization.
+The binary remains a DIDComm attachment referenced by a Schema.org document;
+it is not a FHIR `DocumentReference`.
 
 ## Dependency direction
 
