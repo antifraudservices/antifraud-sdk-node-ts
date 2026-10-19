@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.4 - 2026-10-18
+
 - Add authenticated high-level Gateway operations for recording and
   authoritatively reloading the canonical proof-bound social Demo publication.
 - Authenticate both authoritative issuance submission and receipt reload with
