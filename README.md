@@ -71,6 +71,12 @@ age-over evidence. `recordQualificationEvidence(...)` records an employer's
 attestation about a qualification document and its content identifier. Neither
 method turns an employer statement into an issuer credential.
 
+`listClearingHouseInbox(...)` returns privacy-minimized addressed references.
+`readClearingHouseEvidence(...)` then opens the confidential employer evidence
+only through the authenticated issuer BFF, so the issuer can inspect the
+canonical classification before deciding without putting it in the index or
+ledger anchor.
+
 `readControllerWorkspace(...)` reads the authenticated organization's
 authoritative administration state. Department, group, invitation,
 membership, lifecycle and purge methods never accept an organization reference
