@@ -7,6 +7,7 @@ import {
   AuthoritativeCredentialProviderClient,
   createAuthoritativeCredentialIssuanceController,
   EudiVerifierClient,
+  prepareConfidentialArtifactUpload,
 } from '../dist/index.js'
 
 function jsonResponse(status, body) {
@@ -218,5 +219,50 @@ test('reads and mutates controller administration without caller-owned organizat
     ['DELETE', 'https://gateway.example/v1/controller/employees/employee%3Aone'],
     ['GET', 'https://gateway.example/v1/clearing-house/inbox'],
     ['POST', 'https://gateway.example/v1/clearing-house/evidence/evidence%3Aone/decision'],
+  ])
+})
+
+test('stores and retrieves a confidential DIDComm attachment through the gateway', async () => {
+  const requests = []
+  const pdfBytes = Buffer.from('%PDF-1.4\n%%EOF\n')
+  const client = new AntifraudGatewayClient({
+    baseUrl: 'https://gateway.example',
+    bearerCredential: async () => 'artifact-bearer',
+    fetch: async (url, init) => {
+      requests.push({url: String(url), init})
+      if (init?.method === 'POST') return jsonResponse(201, {
+        document: {jsonapi: {version: '1.1'}, data: []},
+        artifact: {artifactId: 'zCanonicalCid', objectName: 'opaque', byteCount: pdfBytes.byteLength},
+      })
+      return new Response(pdfBytes, {
+        status: 200,
+        headers: {
+          'content-type': 'application/pdf',
+          'content-disposition': 'attachment; filename="synthetic.pdf"',
+        },
+      })
+    },
+  })
+
+  const upload = prepareConfidentialArtifactUpload({
+    bytes: pdfBytes,
+    fileName: 'synthetic.pdf',
+    mediaType: 'application/pdf',
+    attachmentId: 'attachment:one',
+    manifest: {id: 'manifest:one', name: 'Evidence set', additionalType: 'evidence-set', version: '1'},
+    document: {id: 'document:one', name: 'Synthetic PDF', additionalType: 'identity-evidence', version: '1'},
+  })
+  const stored = await client.storeConfidentialArtifact(upload)
+  assert.equal(stored.artifact.artifactId, 'zCanonicalCid')
+  assert.match(upload.document.documents[0].attachment.contentId, /^z/)
+  assert.equal(upload.attachment.byte_count, pdfBytes.byteLength)
+
+  const retrieved = await client.readConfidentialArtifact('zCanonicalCid')
+  assert.equal(retrieved.mediaType, 'application/pdf')
+  assert.equal(retrieved.fileName, 'synthetic.pdf')
+  assert.deepEqual(Buffer.from(retrieved.bytes), pdfBytes)
+  assert.deepEqual(requests.map(request => [request.init?.method ?? 'GET', request.url]), [
+    ['POST', 'https://gateway.example/v1/confidential-artifacts'],
+    ['GET', 'https://gateway.example/v1/confidential-artifacts/zCanonicalCid'],
   ])
 })

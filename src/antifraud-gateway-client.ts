@@ -1,5 +1,17 @@
 // Copyright 2026 Antifraud Services Inc. under the Apache License, Version 2.0.
 
+import type {
+  DidCommInlineBinaryAttachment,
+  SchemaOrgDigitalDocumentDescriptor,
+  SchemaOrgConfidentialDocumentGraphInput,
+} from 'antifraud-data-utils-ts'
+import {
+  buildDidCommInlineBinaryAttachment,
+  buildSchemaOrgConfidentialDocumentGraph,
+  buildSha3_384EvidenceContentIdFromDigest,
+} from 'antifraud-data-utils-ts'
+import { createHash } from 'node:crypto'
+
 export type GatewayClientOptions = Readonly<{
   baseUrl: string
   bearerCredential(): Promise<string>
@@ -22,6 +34,57 @@ export type QualificationEvidenceGatewayRequest = Readonly<{
   documentCid: string
   encryptedClaims: string
 }>
+
+export type ConfidentialArtifactGatewayRequest = Readonly<{
+  document: SchemaOrgConfidentialDocumentGraphInput
+  attachment: DidCommInlineBinaryAttachment
+  fileName: string
+}>
+
+export type PrepareConfidentialArtifactUploadInput = Readonly<{
+  bytes: Uint8Array
+  fileName: string
+  mediaType: string
+  attachmentId: string
+  manifest: SchemaOrgDigitalDocumentDescriptor
+  document: SchemaOrgDigitalDocumentDescriptor
+}>
+
+/** Prepares the canonical Schema.org business record and DIDComm byte transport in one Node BFF call. */
+export function prepareConfidentialArtifactUpload(
+  input: PrepareConfidentialArtifactUploadInput,
+): ConfidentialArtifactGatewayRequest {
+  if (!(input.bytes instanceof Uint8Array) || input.bytes.byteLength === 0) {
+    throw new TypeError('Confidential artifact bytes must not be empty.')
+  }
+  const fileName = input.fileName.trim()
+  if (!fileName || /[\r\n]/u.test(fileName)) throw new TypeError('A safe artifact fileName is required.')
+  const digestBytes = createHash('sha3-384').update(input.bytes).digest()
+  const contentId = buildSha3_384EvidenceContentIdFromDigest(digestBytes)
+  const attachment = Object.freeze({
+    id: input.attachmentId,
+    mediaType: input.mediaType,
+    contentSize: input.bytes.byteLength,
+    contentUrl: `/v1/confidential-artifacts/${encodeURIComponent(contentId)}`,
+    digestAlgorithm: 'sha3-384' as const,
+    digest: digestBytes.toString('base64'),
+    contentId,
+  })
+  const document = Object.freeze({
+    manifest: input.manifest,
+    documents: Object.freeze([{...input.document, attachment}]) as SchemaOrgConfidentialDocumentGraphInput['documents'],
+  })
+  buildSchemaOrgConfidentialDocumentGraph(document)
+  return Object.freeze({
+    document,
+    attachment: buildDidCommInlineBinaryAttachment({
+      id: input.attachmentId,
+      mediaType: input.mediaType,
+      bytes: input.bytes,
+    }),
+    fileName,
+  })
+}
 
 const CLIENT_OWNED_AUTHORITY = ['actor', 'channel', 'zone', 'smartContract'] as const
 const CONTROLLER_OWNED_AUTHORITY = [...CLIENT_OWNED_AUTHORITY, 'organizationReference'] as const
@@ -94,6 +157,35 @@ export class AntifraudGatewayClient {
     return this.#post('/v1/education/qualification-evidence', input)
   }
 
+  async storeConfidentialArtifact(input: ConfidentialArtifactGatewayRequest): Promise<Readonly<{
+    document: Readonly<Record<string, unknown>>
+    artifact: Readonly<{artifactId: string; objectName: string; byteCount: number}>
+  }>> {
+    rejectClientOwnedAuthority(input)
+    return this.#post('/v1/confidential-artifacts', input)
+  }
+
+  async readConfidentialArtifact(artifactId: string): Promise<Readonly<{
+    mediaType: string
+    fileName: string
+    bytes: Uint8Array
+  }>> {
+    const normalizedId = artifactId.trim()
+    if (!normalizedId) throw new TypeError('An artifact identifier is required.')
+    const response = await this.#authorizedFetch(
+      `/v1/confidential-artifacts/${encodeURIComponent(normalizedId)}`,
+      'GET',
+    )
+    if (!response.ok) await this.#throwGatewayError(response)
+    const disposition = response.headers.get('content-disposition') ?? ''
+    const fileName = disposition.match(/filename="([^"]+)"/u)?.[1] ?? 'artifact.bin'
+    return Object.freeze({
+      mediaType: response.headers.get('content-type') ?? 'application/octet-stream',
+      fileName,
+      bytes: new Uint8Array(await response.arrayBuffer()),
+    })
+  }
+
   async readControllerWorkspace(): Promise<ControllerWorkspace> {
     return this.#request('/v1/controller/workspace', 'GET')
   }
@@ -145,16 +237,7 @@ export class AntifraudGatewayClient {
   }
 
   async #request<T>(path: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE', body?: object): Promise<T> {
-    const bearerCredential = (await this.#bearerCredential()).trim()
-    if (!bearerCredential) throw new TypeError('A bearer credential is required.')
-    const response = await this.#fetch(`${this.#baseUrl}${path}`, {
-      method,
-      headers: {
-        authorization: `Bearer ${bearerCredential}`,
-        ...(body ? { 'content-type': 'application/json' } : {}),
-      },
-      ...(body ? { body: JSON.stringify(body) } : {}),
-    })
+    const response = await this.#authorizedFetch(path, method, body)
     const payload: unknown = await response.json()
     if (!response.ok) {
       const message = payload && typeof payload === 'object' && 'error' in payload
@@ -163,5 +246,33 @@ export class AntifraudGatewayClient {
       throw new Error(message)
     }
     return payload as T
+  }
+
+  async #authorizedFetch(
+    path: string,
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+    body?: object,
+  ): Promise<Response> {
+    const bearerCredential = (await this.#bearerCredential()).trim()
+    if (!bearerCredential) throw new TypeError('A bearer credential is required.')
+    return this.#fetch(`${this.#baseUrl}${path}`, {
+      method,
+      headers: {
+        authorization: `Bearer ${bearerCredential}`,
+        ...(body ? { 'content-type': 'application/json' } : {}),
+      },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    })
+  }
+
+  async #throwGatewayError(response: Response): Promise<never> {
+    let message = `Gateway request failed with HTTP ${response.status}.`
+    try {
+      const payload: unknown = await response.json()
+      if (payload && typeof payload === 'object' && 'error' in payload) message = String(payload.error)
+    } catch {
+      // Binary endpoints may return an empty or non-JSON error body.
+    }
+    throw new Error(message)
   }
 }

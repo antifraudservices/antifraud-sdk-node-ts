@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- Add the high-level confidential-artifact upload builder and Gateway client
+  operations. Node BFFs now prepare one Schema.org document graph plus its
+  DIDComm inline attachment, then store and retrieve exact binary bytes without
+  implementing CID or attachment cryptography in portals.
+
+## 0.2.4 - 2026-10-18
+
+- Pin `antifraud-data-utils-ts@0.1.7` and `antifraud-sdk-core-ts@0.1.4`.
+- Add the Node managed wallet with ML-DSA-65 actor-signing and ML-KEM-768
+  document-at-rest keys; private key material never leaves wallet custody.
+- Compose the trusted BFF user-presence ceremony with the one-use Core session
+  and expose verified managed-signature proofs.
+- Seal and unseal raw attachment bytes through the shared JWE cryptography so
+  gateway persistence never stores readable PDF, Word or spreadsheet bytes.
+
 ## 0.2.3 - 2026-10-18
 
 - Pin `antifraud-data-utils-ts@0.1.4` and `antifraud-sdk-core-ts@0.1.3`.
