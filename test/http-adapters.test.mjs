@@ -271,3 +271,43 @@ test('stores and retrieves a confidential DIDComm attachment through the gateway
     ['GET', 'https://gateway.example/v1/confidential-artifacts/zCanonicalCid'],
   ])
 })
+
+test('records and reloads a signed social publication through the authoritative Gateway', async () => {
+  const requests = []
+  const record = {
+    id: 'urn:request:publication:one', environment: 'demo', status: 'demo-recorded',
+    content: {mediaId: 'synthetic-coastline-001', caption: 'Synthetic post'},
+    proof: {status: 'verified'},
+    receipt: {adapter: 'in-memory-fabric-demo', transactionId: 'demo-memory-opaque', cryptographicProof: true},
+  }
+  const client = new AntifraudGatewayClient({
+    baseUrl: 'https://gateway.example',
+    bearerCredential: async () => 'social-bearer',
+    fetch: async (url, init) => {
+      requests.push({url: String(url), init})
+      return jsonResponse(init?.method === 'POST' ? 201 : 200, record)
+    },
+  })
+
+  const submitted = await client.recordSocialPublication({
+    content: record.content,
+    proof: {
+      proofId: 'urn:proof:one', requestId: record.id, operationId: 'urn:operation:one',
+      manifest: {id: 'urn:manifest:one', version: '1', digestAlgorithm: 'sha3-384', digest: 'A'.repeat(64)},
+      relyingParty: 'https://social-demo.antifraud.services', purpose: 'synthetic-publication-manifest-signing',
+      signerReference: 'urn:user:synthetic', algorithm: 'ML-DSA-65',
+      verificationMethod: 'did:key:synthetic#actor-signing', createdAt: '2026-10-18T12:00:00.000Z',
+      signature: 'c2lnbmF0dXJl', status: 'verified',
+    },
+  })
+  const reloaded = await client.readSocialPublication(record.id)
+
+  assert.deepEqual(submitted, record)
+  assert.deepEqual(reloaded, record)
+  assert.deepEqual(requests.map(request => [request.init?.method ?? 'GET', request.url]), [
+    ['POST', 'https://gateway.example/v1/social/publications'],
+    ['GET', 'https://gateway.example/v1/social/publications/urn%3Arequest%3Apublication%3Aone'],
+  ])
+  assert.equal(requests[0].init.headers.authorization, 'Bearer social-bearer')
+  assert.equal(Object.hasOwn(JSON.parse(requests[0].init.body), 'actor'), false)
+})

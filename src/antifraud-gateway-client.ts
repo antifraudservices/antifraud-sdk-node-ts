@@ -4,6 +4,9 @@ import type {
   DidCommInlineBinaryAttachment,
   SchemaOrgDigitalDocumentDescriptor,
   SchemaOrgConfidentialDocumentGraphInput,
+  ManagedSignatureProof,
+  SocialPublicationContent,
+  SocialPublicationDemoRecord,
 } from 'antifraud-data-utils-ts'
 import {
   buildDidCommInlineBinaryAttachment,
@@ -230,6 +233,20 @@ export class AntifraudGatewayClient {
   async decideClearingHouseEvidence(evidenceLocator: string, input: Readonly<{ decision: 'confirmed' | 'rejected' | 'revoked'; issuerProofReference: string }>): Promise<unknown> {
     rejectControllerOwnedAuthority(input)
     return this.#request(`/v1/clearing-house/evidence/${encodeURIComponent(evidenceLocator)}/decision`, 'POST', input)
+  }
+
+  async recordSocialPublication(input: Readonly<{
+    content: SocialPublicationContent
+    proof: ManagedSignatureProof
+  }>): Promise<SocialPublicationDemoRecord> {
+    rejectClientOwnedAuthority(input)
+    return this.#post('/v1/social/publications', input)
+  }
+
+  async readSocialPublication(publicationId: string): Promise<SocialPublicationDemoRecord> {
+    const normalizedId = publicationId.trim()
+    if (!normalizedId) throw new TypeError('A social publication identifier is required.')
+    return this.#request(`/v1/social/publications/${encodeURIComponent(normalizedId)}`, 'GET')
   }
 
   async #post<T>(path: string, body: object): Promise<T> {
