@@ -208,6 +208,7 @@ test('reads and mutates controller administration without caller-owned organizat
   await client.setControllerEmployeeMemberships('employee:one', {groupReferences: [], departmentReferences: []})
   await client.purgeControllerEmployee('employee:one')
   await client.listClearingHouseInbox()
+  await client.readClearingHouseEvidence('evidence:one')
   await client.decideClearingHouseEvidence('evidence:one', {decision: 'confirmed', issuerProofReference: 'proof:issuer:one'})
 
   await assert.rejects(
@@ -223,6 +224,7 @@ test('reads and mutates controller administration without caller-owned organizat
     ['PUT', 'https://gateway.example/v1/controller/employees/employee%3Aone/memberships'],
     ['DELETE', 'https://gateway.example/v1/controller/employees/employee%3Aone'],
     ['GET', 'https://gateway.example/v1/clearing-house/inbox'],
+    ['GET', 'https://gateway.example/v1/clearing-house/evidence/evidence%3Aone'],
     ['POST', 'https://gateway.example/v1/clearing-house/evidence/evidence%3Aone/decision'],
   ])
 })

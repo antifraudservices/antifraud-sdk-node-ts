@@ -29,14 +29,18 @@ export type IdentityEvidenceGatewayRequest = Readonly<{
   encryptedClaims: string
 }>
 
-export type QualificationEvidenceGatewayRequest = Readonly<{
+type QualificationEvidenceGatewayRequestBase = Readonly<{
   evidenceId: string
   subjectReference: string
   issuer: Readonly<{ legalIdentifier: string; jurisdiction: string }>
   qualificationReference: string
   documentCid: string
-  encryptedClaims: string
 }>
+
+export type QualificationEvidenceGatewayRequest = QualificationEvidenceGatewayRequestBase & (
+  | Readonly<{confidentialClaims: Readonly<Record<string, unknown>>; encryptedClaims?: never}>
+  | Readonly<{encryptedClaims: string; confidentialClaims?: never}>
+)
 
 export type ConfidentialArtifactGatewayRequest = Readonly<{
   document: SchemaOrgConfidentialDocumentGraphInput
@@ -228,6 +232,15 @@ export class AntifraudGatewayClient {
 
   async listClearingHouseInbox(): Promise<Readonly<{ items: readonly ClearingHouseItem[] }>> {
     return this.#request('/v1/clearing-house/inbox', 'GET')
+  }
+
+  async readClearingHouseEvidence(evidenceLocator: string): Promise<Readonly<{
+    evidenceLocator: string
+    confidentialClaims: Readonly<Record<string, unknown>>
+  }>> {
+    const normalizedLocator = evidenceLocator.trim()
+    if (!normalizedLocator) throw new TypeError('An evidence locator is required.')
+    return this.#request(`/v1/clearing-house/evidence/${encodeURIComponent(normalizedLocator)}`, 'GET')
   }
 
   async decideClearingHouseEvidence(evidenceLocator: string, input: Readonly<{ decision: 'confirmed' | 'rejected' | 'revoked'; issuerProofReference: string }>): Promise<unknown> {
