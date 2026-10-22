@@ -82,6 +82,15 @@ authoritative administration state. Department, group, invitation,
 membership, lifecycle and purge methods never accept an organization reference
 from the caller; the gateway derives it from the bearer credential.
 
+`createControllerPlace(...)` and `createControllerClientService(...)` preserve
+the Schema.org-first organization structure. Separate publication methods mark
+each record for the public catalog; they never publish merely because a record
+exists. `readControllerServiceCatalog(...)` uses authenticated controller
+authority, while `readPublicOrganizationServiceCatalog(...)` retrieves the
+public graph. Sector, jurisdiction, publisher and access URL stay owned by the
+gateway configuration. Scheduling and FHIR conversion are outside this SDK
+surface.
+
 `AuthoritativeCredentialProviderClient` implements only provider HTTP
 transport. `createAuthoritativeCredentialIssuanceController(...)` composes it
 with the runtime-neutral state and polling rules from `antifraud-sdk-core-ts`.

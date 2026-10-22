@@ -116,6 +116,24 @@ export type ControllerWorkspace = Readonly<{
   organization: Readonly<{ reference: string; displayName: string; legalIdentifier?: string; jurisdiction?: string }>
   licences: Readonly<{ total: number; assigned: number; free: number }>
   departments: readonly Readonly<{ reference: string; name: string }>[]
+  places: readonly Readonly<{
+    reference: string
+    name: string
+    departmentReference: string
+    containedInPlaceReference?: string
+    geo?: Readonly<{ latitude: number; longitude: number; elevation?: number }>
+    publishInCatalog: boolean
+  }>[]
+  services: readonly Readonly<{
+    reference: string
+    name: string
+    description?: string
+    serviceType: string
+    departmentReference: string
+    placeReferences: readonly string[]
+    publishInCatalog: boolean
+  }>[]
+  catalog: Readonly<{ version: number; modifiedAt?: string }>
   groups: readonly Readonly<{ reference: string; name: string; capabilities: readonly string[]; authorizationReference: string }>[]
   invitations: readonly Readonly<{ reference: string; email: string; role: string; status: string; departmentReferences: readonly string[]; groupReferences: readonly string[] }>[]
   employees: readonly Readonly<{ reference: string; email: string; role: string; status: 'active' | 'inactive'; licenceReference: string; departmentReferences: readonly string[]; groupReferences: readonly string[]; deviceReferences: readonly string[] }>[]
@@ -200,6 +218,54 @@ export class AntifraudGatewayClient {
   async createControllerDepartment(input: Readonly<{ name: string }>): Promise<unknown> {
     rejectControllerOwnedAuthority(input)
     return this.#request('/v1/controller/departments', 'POST', input)
+  }
+
+  async createControllerPlace(input: Readonly<{
+    name: string
+    departmentReference: string
+    containedInPlaceReference?: string
+    geo?: Readonly<{ latitude: number; longitude: number; elevation?: number }>
+  }>): Promise<unknown> {
+    rejectControllerOwnedAuthority(input)
+    return this.#request('/v1/controller/places', 'POST', input)
+  }
+
+  async createControllerClientService(input: Readonly<{
+    name: string
+    description?: string
+    serviceType: string
+    departmentReference: string
+    placeReferences: readonly string[]
+  }>): Promise<unknown> {
+    rejectControllerOwnedAuthority(input)
+    return this.#request('/v1/controller/services', 'POST', input)
+  }
+
+  async setControllerPlaceCatalogPublication(placeReference: string, publishInCatalog: boolean): Promise<unknown> {
+    return this.#request(
+      `/v1/controller/places/${encodeURIComponent(placeReference)}/catalog-publication`,
+      'PUT',
+      { publishInCatalog },
+    )
+  }
+
+  async setControllerClientServiceCatalogPublication(serviceReference: string, publishInCatalog: boolean): Promise<unknown> {
+    return this.#request(
+      `/v1/controller/services/${encodeURIComponent(serviceReference)}/catalog-publication`,
+      'PUT',
+      { publishInCatalog },
+    )
+  }
+
+  async readControllerServiceCatalog(): Promise<Readonly<Record<string, unknown>>> {
+    return this.#request('/v1/controller/service-catalog', 'GET')
+  }
+
+  async readPublicOrganizationServiceCatalog(organizationReference: string): Promise<Readonly<Record<string, unknown>>> {
+    return this.#request(
+      `/v1/public/organization-service-catalog/${encodeURIComponent(organizationReference)}`,
+      'GET',
+    )
   }
 
   async createControllerGroup(input: Readonly<{ name: string; capabilities: readonly string[] }>): Promise<unknown> {

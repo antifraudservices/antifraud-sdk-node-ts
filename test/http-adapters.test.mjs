@@ -202,6 +202,14 @@ test('reads and mutates controller administration without caller-owned organizat
 
   await client.readControllerWorkspace()
   await client.createControllerDepartment({name: 'Operations'})
+  await client.createControllerPlace({name: 'Main campus', departmentReference: 'department:one'})
+  await client.createControllerClientService({
+    name: 'Assessment', serviceType: 'assessment', departmentReference: 'department:one', placeReferences: ['place:one'],
+  })
+  await client.setControllerPlaceCatalogPublication('place:one', true)
+  await client.setControllerClientServiceCatalogPublication('service:one', true)
+  await client.readControllerServiceCatalog()
+  await client.readPublicOrganizationServiceCatalog('organization:one')
   await client.createControllerGroup({name: 'Reviewers', capabilities: ['identity.evidence.record']})
   await client.createControllerInvitation({email: 'reviewer@example.invalid', role: 'Reviewer', groupReferences: [], departmentReferences: []})
   await client.setControllerEmployeeStatus('employee:one', 'inactive')
@@ -218,6 +226,12 @@ test('reads and mutates controller administration without caller-owned organizat
   assert.deepEqual(requests.map(request => [request.init?.method ?? 'GET', request.url]), [
     ['GET', 'https://gateway.example/v1/controller/workspace'],
     ['POST', 'https://gateway.example/v1/controller/departments'],
+    ['POST', 'https://gateway.example/v1/controller/places'],
+    ['POST', 'https://gateway.example/v1/controller/services'],
+    ['PUT', 'https://gateway.example/v1/controller/places/place%3Aone/catalog-publication'],
+    ['PUT', 'https://gateway.example/v1/controller/services/service%3Aone/catalog-publication'],
+    ['GET', 'https://gateway.example/v1/controller/service-catalog'],
+    ['GET', 'https://gateway.example/v1/public/organization-service-catalog/organization%3Aone'],
     ['POST', 'https://gateway.example/v1/controller/groups'],
     ['POST', 'https://gateway.example/v1/controller/invitations'],
     ['PUT', 'https://gateway.example/v1/controller/employees/employee%3Aone/status'],
