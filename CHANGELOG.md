@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add high-level controller adapters for separate Schema.org Place and client
+  Service creation, explicit catalog publication, authenticated controller
+  catalog readback and public organization-catalog retrieval.
+
 ## 0.2.5 - 2026-10-19
 
 - Add high-level addressed-issuer evidence readback and support server-sealed
