@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.6 - 2026-10-21
+
 - Add high-level controller adapters for separate Schema.org Place and client
   Service creation, explicit catalog publication, authenticated controller
   catalog readback and public organization-catalog retrieval.
