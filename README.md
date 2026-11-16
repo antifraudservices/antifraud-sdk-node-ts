@@ -97,6 +97,42 @@ with the runtime-neutral state and polling rules from `antifraud-sdk-core-ts`.
 Canonical request validation and wire conversion remain owned by
 `antifraud-data-utils-ts`; this package does not maintain a second copy.
 
+## Credential and compliance verification clients
+
+`verifyCredentialPresentation({request, presentation})` submits a signed holder
+presentation to the gateway Clearing House. The request binds the exact resource,
+jurisdiction, verification capability and fresh nonce. The gateway loads current
+actor, holder keys, issuer trust, credential status and permissions from its
+configured authority. The SDK returns only the request-bound verification receipt
+and its explicit state provider (`memory` or `fabric`).
+
+`verifyGaiaXPresentation({presentation})` submits the tenant presentation through
+the gateway to its configured Gaia-X compliance engine. The gateway verifies the
+engine signature, current trust, rules version, validity and exact credential
+coverage. The SDK checks the returned Standard Compliance credential profile and
+returns its original signed JWT plus a narrow metadata summary. It never returns
+the submitted presentation or arbitrary engine fields in that summary. The SDK
+uses the authenticated gateway as its verifier; decoding the response profile is
+not a second signature verification or a compliance-engine implementation.
+
+Both operations use HTTPS, reject redirects and discard remote error bodies.
+An explicit `allowLocalTestEndpoint` option accepts loopback HTTP only with
+`NODE_ENV=test`. This option does not disable signature or authorization checks.
+
+`npm run test:gateway:local` requires `ANTIFRAUD_GATEWAY_TEST_MODULE` to identify a
+compiled local gateway module using a `file:` URL. This separate gate runs the
+high-level SDK through real local HTTP and cryptographic verification, including
+replay, revoked-credential and policy denials. Its memory-state proof does not
+represent a Fabric or production deployment.
+
+## Node signing keys for synthetic examples
+
+The explicit `antifraud-sdk-node-ts/examples/deterministic-signing-key` subpath
+exports `deriveDeterministicEcJwkPair` for governed synthetic examples. It
+preserves the established ES384/ES256K derivation bytes for an exact seed and
+purpose. Deterministic seeds are not production entropy. This helper is not
+exported from the package root and does not belong in browser Data contracts.
+
 ## DIDComm binary attachment transport
 
 `createTrustedDocumentDeliveryController` transports governed files through
@@ -141,3 +177,9 @@ The first implementation increment requires contract tests against a local verif
 ## License
 
 Apache-2.0.
+
+`examples/client-assertion` builds disposable signed SMART/OpenID client JWTs
+and exposes their generated public keys for local examples. These assertions
+establish no registered-device authority. A production wallet signs with its
+own enrolled key; verifiers independently check registration, audience,
+validity and replay. This Node-only subpath is not part of the runtime root.

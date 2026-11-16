@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Preserve ephemeral signed SMART/OpenID client examples under an explicit
+  Node-only subpath, separate from registered-wallet authority.
+
+- Add authenticated presentation and Gaia-X compliance gateway clients, with
+  request-bound receipts and narrow signed compliance-credential summaries.
+- Reject caller-selected verification authority and prevent wallet presentations
+  or arbitrary remote error bodies from entering SDK result objects.
+- Add an explicit Node synthetic-example signing-key subpath preserving the
+  established deterministic EC derivation contract.
+- Add focused transport contracts and a separate SDK-to-gateway local HTTP gate
+  with real signatures, current-state checks and negative authorization cases.
+
 ## 0.2.6 - 2026-10-21
 
 - Add high-level controller adapters for separate Schema.org Place and client
