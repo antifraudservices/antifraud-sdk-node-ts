@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.7
 
 - Preserve ephemeral signed SMART/OpenID client examples under an explicit
   Node-only subpath, separate from registered-wallet authority.
