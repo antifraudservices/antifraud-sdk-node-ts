@@ -1,3 +1,6 @@
+import type {CredentialPresentationSubmission, CredentialPresentationVerificationResult, GaiaXComplianceSubmission} from 'antifraud-data-utils-ts/verification-contracts'
+import {validatePresentationSubmission, validateGaiaXSubmission, parsePresentationReceipt, parseGaiaXSummary, type GaiaXComplianceVerificationSummary} from './gateway-verification-response.js'
+export type {GaiaXComplianceVerificationSummary} from './gateway-verification-response.js'
 // Copyright 2026 Antifraud Services Inc. under the Apache License, Version 2.0.
 
 import type {
@@ -19,6 +22,8 @@ export type GatewayClientOptions = Readonly<{
   baseUrl: string
   bearerCredential(): Promise<string>
   fetch?: typeof globalThis.fetch
+  /** Verification HTTP is permitted only for explicit loopback tests under NODE_ENV=test. */
+  allowLocalTestEndpoint?: boolean
 }>
 
 export type IdentityEvidenceGatewayRequest = Readonly<{
@@ -156,11 +161,23 @@ export class AntifraudGatewayClient {
   readonly #baseUrl: string
   readonly #bearerCredential: GatewayClientOptions['bearerCredential']
   readonly #fetch: typeof globalThis.fetch
+  readonly #allowLocalTestEndpoint: boolean
 
   constructor(options: GatewayClientOptions) {
     this.#baseUrl = options.baseUrl.replace(/\/$/u, '')
     this.#bearerCredential = options.bearerCredential
     this.#fetch = options.fetch ?? globalThis.fetch
+    this.#allowLocalTestEndpoint = options.allowLocalTestEndpoint === true
+  }
+
+  async verifyCredentialPresentation(input: CredentialPresentationSubmission): Promise<CredentialPresentationVerificationResult> {
+    validatePresentationSubmission(input)
+    return parsePresentationReceipt(await this.#verificationRequest('/v1/clearing-house/presentations/verify', input), input)
+  }
+
+  async verifyGaiaXPresentation(input: GaiaXComplianceSubmission): Promise<GaiaXComplianceVerificationSummary> {
+    validateGaiaXSubmission(input)
+    return parseGaiaXSummary(await this.#verificationRequest('/v1/clearing-house/gaia-x/verify', input), input)
   }
 
   async recordIdentityEvidence(input: IdentityEvidenceGatewayRequest): Promise<Readonly<{
@@ -328,6 +345,22 @@ export class AntifraudGatewayClient {
     return this.#request(`/v1/social/publications/${encodeURIComponent(normalizedId)}`, 'GET')
   }
 
+  async #verificationRequest(path: string, body: object): Promise<unknown> {
+    const endpoint = new URL(`${this.#baseUrl}${path}`)
+    const localTest = this.#allowLocalTestEndpoint && process.env.NODE_ENV === 'test'
+      && endpoint.protocol === 'http:' && ['127.0.0.1', '[::1]'].includes(endpoint.hostname)
+    if ((!localTest && endpoint.protocol !== 'https:') || endpoint.username || endpoint.password || endpoint.hash) {
+      throw new Error('Gateway verification requires an HTTPS endpoint or an explicit loopback test.')
+    }
+    const response = await this.#authorizedFetch(path, 'POST', body, true)
+    if (!response.ok) {
+      await response.body?.cancel().catch(() => undefined)
+      throw new Error(`Gateway verification failed with HTTP ${response.status}.`)
+    }
+    try {return await response.json()}
+    catch {throw new Error('The gateway verification response is invalid.')}
+  }
+
   async #post<T>(path: string, body: object): Promise<T> {
     return this.#request(path, 'POST', body)
   }
@@ -348,12 +381,15 @@ export class AntifraudGatewayClient {
     path: string,
     method: 'GET' | 'POST' | 'PUT' | 'DELETE',
     body?: object,
+    verification = false,
   ): Promise<Response> {
     const bearerCredential = (await this.#bearerCredential()).trim()
     if (!bearerCredential) throw new TypeError('A bearer credential is required.')
     return this.#fetch(`${this.#baseUrl}${path}`, {
       method,
+      ...(verification ? {redirect: 'error' as const, signal: AbortSignal.timeout(20_000)} : {}),
       headers: {
+        ...(verification ? {accept: 'application/json'} : {}),
         authorization: `Bearer ${bearerCredential}`,
         ...(body ? { 'content-type': 'application/json' } : {}),
       },

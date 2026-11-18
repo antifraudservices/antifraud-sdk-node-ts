@@ -1,6 +1,6 @@
 {
   "name": "antifraud-sdk-node-ts",
-  "version": "0.2.6",
+  "version": "0.3.0",
   "description": "Node.js adapters for neutral antifraud verification and credential-provider workflows",
   "type": "module",
   "main": "./dist/index.js",
@@ -9,6 +9,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./examples/deterministic-signing-key": {
+      "types": "./dist/examples/deterministic-signing-key.d.ts",
+      "default": "./dist/examples/deterministic-signing-key.js"
+    },
+    "./examples/client-assertion": {
+      "types": "./dist/examples/client-assertion.d.ts",
+      "default": "./dist/examples/client-assertion.js"
     }
   },
   "files": [
@@ -20,7 +28,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "npm run build && node --test test/*.test.mjs",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:gateway:local": "npm run build && node --test --test-concurrency=1 test/gateway-clearing-house.live.mjs"
   },
   "engines": {
     "node": ">=24.0.0"
@@ -36,6 +45,7 @@
   },
   "dependencies": {
     "antifraud-data-utils-ts": "0.1.9",
-    "antifraud-sdk-core-ts": "0.1.5"
+    "antifraud-sdk-core-ts": "0.1.5",
+    "jose": "4.15.9"
   }
 }
