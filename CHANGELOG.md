@@ -2,6 +2,9 @@
 
 ## 0.3.0
 
+- Pin Antifraud Data 0.4.0 to its verified registry artifact while preserving
+  the existing SDK Core 0.1.5 dependency and its separate Data 0.1.9 contract.
+
 - Preserve ephemeral signed SMART/OpenID client examples under an explicit
   Node-only subpath, separate from registered-wallet authority.
 
