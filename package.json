@@ -44,7 +44,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "antifraud-data-utils-ts": "0.1.9",
+    "antifraud-data-utils-ts": "0.4.0",
     "antifraud-sdk-core-ts": "0.1.5",
     "jose": "4.15.9"
   }
