@@ -327,3 +327,20 @@ test('records and reloads a signed social publication through the authoritative 
   assert.equal(requests[0].init.headers.authorization, 'Bearer social-bearer')
   assert.equal(Object.hasOwn(JSON.parse(requests[0].init.body), 'actor'), false)
 })
+
+test('requests an individual controller resource and encodes its filters', async () => {
+  const requests = []
+  const client = new AntifraudGatewayClient({
+    baseUrl: 'https://gateway.example',
+    bearerCredential: async () => 'test-controller',
+    fetch: async (url, init) => {
+      requests.push([new URL(url), init])
+      return jsonResponse(200, [])
+    },
+  })
+  const role = 'Organization manager'
+  assert.deepEqual(await client.readControllerResource('employees', { role }), [])
+  assert.equal(requests[0][0].pathname, '/v1/controller/employees')
+  assert.equal(requests[0][0].searchParams.get('role'), role)
+  assert.equal(requests[0][1].headers.authorization, 'Bearer test-controller')
+})
