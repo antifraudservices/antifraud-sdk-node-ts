@@ -183,3 +183,48 @@ and exposes their generated public keys for local examples. These assertions
 establish no registered-device authority. A production wallet signs with its
 own enrolled key; verifiers independently check registration, audience,
 validity and replay. This Node-only subpath is not part of the runtime root.
+
+## Optional Pontus-X catalogue publication
+
+Enable `PONTUS_X_PUBLICATION_ENABLED=true` in the BFF server configuration.
+`createPontusXPublication` returns undefined by default. Register its action
+only when the module is enabled. The SDK is independent of the portal,
+Nautilus version and the application's catalogue package.
+
+In the host controller settings, store whether each tenant can publish with
+its own enrolled wallet. Default to host-only. Require host-controller
+authorization to change that setting. Apply it to the tenant wallet setup
+action and reload it from storage on every publication request. For host-owned
+publication, require an authenticated host controller with access to that
+tenant, and use the operator's enrolled wallet. Keep the source tenant ID with
+the publication receipt and display the external owner's address separately.
+
+For each request:
+
+1. Pass the authenticated server-side session and local dataset ID to
+   `publish`. The authorization callback must load the tenant and authoritative
+   policy for the selected dataset. Resolve the network, controller authority
+   and enrolled wallet addresses on the server.
+2. In `connect`, open the authorized organization's signing provider from
+   server configuration. For Nautilus 1.x, initialize Nautilus with that signer
+   and return `createNautilusV1PublicationClient(nautilus, signer)`.
+3. In `prepareAsset`, load the approved Schema.org Dataset and linked services
+   from the tenant, and call `buildOceanDatasetPublication` from the portal's
+   catalogue utilities with the selected SDK builders. The service factory
+   supplies the provider-side file source, permissions and pricing.
+4. Use a durable journal with a unique key over chain, tenant and dataset.
+   Implement `start` as an atomic insert-if-absent. Retry with the same key
+   to resume readback. A pending record without a transaction receipt requires
+   reconciliation against the chain before any retry can create a new asset.
+   Treat a publisher change for an existing DID as a separate ownership
+   decision. The create action preserves the existing record.
+5. In `projectDataset`, call `projectOceanDatasetEntries` with the indexed DDO.
+   Present success only after the SDK confirms the indexed DID, chain and
+   owner. The returned receipt contains the DID, metadata transaction hash,
+   owner, publisher and the projected catalogue. Keep any retained original
+   DDO private.
+
+The same publisher can use the Antifraud or GDC catalogue conversion
+functions through these callbacks. A first live check should use an onboarded
+organizational wallet and a synthetic dataset in
+[Pontus-X Testnet](https://docs.pontus-x.eu/docs/getting-started/Publication-guide).
