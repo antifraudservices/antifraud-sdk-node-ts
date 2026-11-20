@@ -145,6 +145,11 @@ export type ControllerWorkspace = Readonly<{
   notifications: readonly Readonly<{ reference: string; recipientReference: string; event: string; recordedAt: string }>[]
 }>
 
+export type ControllerResources = Pick<ControllerWorkspace, 'organization' | 'licences' | 'departments' | 'groups' | 'invitations' | 'notifications'> & Readonly<{
+  employees: readonly Omit<ControllerWorkspace['employees'][number], 'deviceReferences'>[]
+  devices: readonly Readonly<{ employeeReference: string; deviceReferences: readonly string[] }>[]
+}>
+
 export type ClearingHouseItem = Readonly<{
   destinationOrganizationReference: string
   evidenceLocator: string
@@ -226,6 +231,16 @@ export class AntifraudGatewayClient {
       fileName,
       bytes: new Uint8Array(await response.arrayBuffer()),
     })
+  }
+
+  async readControllerResource<T extends keyof ControllerResources>(
+    resource: T, filters: Readonly<{ email?: string; role?: string; reference?: string }> = {},
+  ): Promise<ControllerResources[T]> {
+    const query = new URLSearchParams()
+    for (const [name, value] of Object.entries(filters)) {
+      if (value !== undefined) query.set(name, value)
+    }
+    return this.#request(`/v1/controller/${encodeURIComponent(resource)}${query.size ? `?${query}` : ''}`, 'GET')
   }
 
   async readControllerWorkspace(): Promise<ControllerWorkspace> {

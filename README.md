@@ -77,10 +77,12 @@ only through the authenticated issuer BFF, so the issuer can inspect the
 canonical classification before deciding without putting it in the index or
 ledger anchor.
 
-`readControllerWorkspace(...)` reads the authenticated organization's
-authoritative administration state. Department, group, invitation,
-membership, lifecycle and purge methods never accept an organization reference
-from the caller; the gateway derives it from the bearer credential.
+Use `readControllerResource('employees', { email })` to search employees
+or `readControllerResource('licences')` to read licence totals independently.
+The gateway derives the organization from the bearer credential. Department,
+group, invitation, membership, lifecycle and purge methods use the same
+authority boundary. `readControllerWorkspace()` is retained for compatibility
+with older gateways.
 
 `createControllerPlace(...)` and `createControllerClientService(...)` preserve
 the Schema.org-first organization structure. Separate publication methods mark
