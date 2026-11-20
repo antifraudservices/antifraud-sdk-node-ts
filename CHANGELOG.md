@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.3.1 - 2026-11-20
+
 - Add an opt-in Pontus-X publisher for server applications with tenant and
   host-owned publication policies, transaction journaling and indexed readback.
 

@@ -224,7 +224,7 @@ For each request:
    owner, publisher and the projected catalogue. Keep any retained original
    DDO private.
 
-The same publisher can use the Antifraud or GDC catalogue conversion
-functions through these callbacks. A first live check should use an onboarded
+The publisher accepts the application's catalogue conversion functions
+through these callbacks. A first live check should use an onboarded
 organizational wallet and a synthetic dataset in
 [Pontus-X Testnet](https://docs.pontus-x.eu/docs/getting-started/Publication-guide).
