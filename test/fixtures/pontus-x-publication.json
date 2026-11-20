@@ -1,0 +1,12 @@
+{
+  "actor": "authorized-controller",
+  "tenantId": "example-organization",
+  "datasetId": "synthetic-factory-metrics",
+  "chainId": 32457,
+  "walletAddress": "0x1111111111111111111111111111111111111111",
+  "otherAddress": "0x2222222222222222222222222222222222222222",
+  "receipt": {
+    "ddo": { "id": "did:op:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+    "setMetadataTxReceipt": { "transactionHash": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" }
+  }
+}

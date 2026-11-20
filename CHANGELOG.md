@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Add an opt-in Pontus-X publisher for server applications with tenant and
+  host-owned publication policies, transaction journaling and indexed readback.
+
 ## 0.3.0
 
 - Pin Antifraud Data 0.4.0 to its verified registry artifact while preserving
