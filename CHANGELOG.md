@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.3.2
+
 - Add typed independent controller-resource reads with optional employee filters.
 
 ## 0.3.1 - 2026-11-20
