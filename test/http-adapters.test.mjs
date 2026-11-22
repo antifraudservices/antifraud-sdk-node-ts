@@ -344,3 +344,28 @@ test('requests an individual controller resource and encodes its filters', async
   assert.equal(requests[0][0].searchParams.get('role'), role)
   assert.equal(requests[0][1].headers.authorization, 'Bearer test-controller')
 })
+
+test('prepares a wallet offer using only an authenticated opaque authorization reference', async () => {
+  const {AuthoritativeCredentialProviderClient} = await import('../dist/index.js')
+  const origin = 'https://provider.example'
+  const reference = 'synthetic-authorization-reference'
+  const secret = 'synthetic-provider-bearer'
+  const offerUri = `${origin}/credential-offers/${'A'.repeat(43)}`
+  const transactionCode = '123456'
+  const client = new AuthoritativeCredentialProviderClient({baseUrl: origin, bearerCredential: async () => secret,
+    fetch: async (address, init) => {
+      assert.equal(address, `${origin}/credential-offers`)
+      assert.equal(init.method, 'POST')
+      assert.equal(init.redirect, 'error')
+      assert.equal(init.headers.authorization, `Bearer ${secret}`)
+      assert.deepEqual(JSON.parse(init.body), {authorization_reference: reference})
+      return Response.json({offerUri, transactionCode}, {status: 201})
+    }})
+  assert.deepEqual(await client.requestWalletCredentialOffer(reference), {offerUri, transactionCode})
+  const unconfigured = new AuthoritativeCredentialProviderClient({baseUrl: origin,
+    fetch: async () => assert.fail('Do not contact the provider without backend authentication')})
+  await assert.rejects(unconfigured.requestWalletCredentialOffer(reference), /backend authentication/)
+  const substituted = new AuthoritativeCredentialProviderClient({baseUrl: origin, bearerCredential: async () => secret,
+    fetch: async () => Response.json({offerUri: offerUri.replace('provider.example', 'other.example'), transactionCode}, {status: 201})})
+  await assert.rejects(substituted.requestWalletCredentialOffer(reference), /trusted issuer/)
+})
