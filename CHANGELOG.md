@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Provide a shared OpenID4VCI issuer with by-reference offers, one-use grants,
+  wallet proof verification and a caller-supplied authoritative signer.
+
 - Support wallet offer issuers at tenant paths. Reject offers from sibling
   issuer paths, including on the same HTTPS origin.
 
