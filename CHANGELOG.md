@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Support wallet offer issuers at tenant paths. Reject offers from sibling
+  issuer paths, including on the same HTTPS origin.
+
 - Request a wallet offer using a backend-authenticated opaque authorization
   reference and validate the returned offer against the trusted issuer.
 

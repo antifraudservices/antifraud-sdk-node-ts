@@ -64,10 +64,15 @@ export class AuthoritativeCredentialProviderClient {
       throw new TypeError('An opaque wallet authorization reference is required')
     }
     const issuer = new URL(this.baseUrl)
-    if (issuer.protocol !== 'https:' || issuer.origin !== this.baseUrl) throw new TypeError('Wallet offers require a trusted HTTPS issuer origin')
+    const issuerPath = issuer.pathname === '/' ? '' : issuer.pathname
+    if (issuer.protocol !== 'https:' || `${issuer.origin}${issuerPath}` !== this.baseUrl
+      || !/^(?:\/[A-Za-z0-9._~-]+)*$/u.test(issuerPath)) {
+      throw new TypeError('Wallet offers require a trusted HTTPS issuer URL')
+    }
+    const offerPath = `${issuerPath}/credential-offers`
     const headers = await this.headers(true)
     if (!/^Bearer \S+$/.test(headers.authorization ?? '')) throw new Error('Wallet offers require backend authentication')
-    const response = await this.fetch(`${issuer.origin}/credential-offers`, {
+    const response = await this.fetch(`${this.baseUrl}/credential-offers`, {
       method: 'POST', headers, redirect: 'error', signal: AbortSignal.timeout(10000),
       body: JSON.stringify({authorization_reference: authorizationReference}),
     })
@@ -79,8 +84,11 @@ export class AuthoritativeCredentialProviderClient {
       throw new Error('Invalid wallet offer response')
     }
     const offer = new URL(offerUri)
-    if (offer.origin !== issuer.origin || offer.username || offer.password || offer.search || offer.hash
-      || !/^\/credential-offers\/[A-Za-z0-9_-]{43}$/u.test(offer.pathname)) {
+    const referencePrefix = `${offerPath}/`
+    if (offer.origin !== issuer.origin || offer.href !== offerUri
+      || offer.username || offer.password || offer.search || offer.hash
+      || !offer.pathname.startsWith(referencePrefix)
+      || !/^[A-Za-z0-9_-]{43}$/u.test(offer.pathname.slice(referencePrefix.length))) {
       throw new Error('Wallet offer URL does not match the trusted issuer')
     }
     return {offerUri: offer.href, transactionCode}
