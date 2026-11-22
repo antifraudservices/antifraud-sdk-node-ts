@@ -230,3 +230,11 @@ The publisher accepts the application's catalogue conversion functions
 through these callbacks. A first live check should use an onboarded
 organizational wallet and a synthetic dataset in
 [Pontus-X Testnet](https://docs.pontus-x.eu/docs/getting-started/Publication-guide).
+
+## Prepare an authorized wallet offer
+
+Use `AuthoritativeCredentialProviderClient.requestWalletCredentialOffer` from
+a backend configured with an HTTPS issuer origin and backend authentication.
+Pass the opaque authorization reference from the verified professional journey.
+The issuer resolves the subject and returns the offer URL and a separate
+transaction code for the authenticated holder.

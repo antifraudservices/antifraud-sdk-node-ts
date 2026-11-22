@@ -58,6 +58,34 @@ export class AuthoritativeCredentialProviderClient {
     return parseCredentialIssuanceReceiptWire(await response.json())
   }
 
+  /** Prepares a wallet offer for a reference that the issuer resolves and authorizes. */
+  async requestWalletCredentialOffer(authorizationReference: string): Promise<{offerUri: string; transactionCode: string}> {
+    if (typeof authorizationReference !== 'string' || !authorizationReference.trim() || authorizationReference.length > 1024) {
+      throw new TypeError('An opaque wallet authorization reference is required')
+    }
+    const issuer = new URL(this.baseUrl)
+    if (issuer.protocol !== 'https:' || issuer.origin !== this.baseUrl) throw new TypeError('Wallet offers require a trusted HTTPS issuer origin')
+    const headers = await this.headers(true)
+    if (!/^Bearer \S+$/.test(headers.authorization ?? '')) throw new Error('Wallet offers require backend authentication')
+    const response = await this.fetch(`${issuer.origin}/credential-offers`, {
+      method: 'POST', headers, redirect: 'error', signal: AbortSignal.timeout(10000),
+      body: JSON.stringify({authorization_reference: authorizationReference}),
+    })
+    if (response.status !== 201) throw new Error(`Wallet offer request failed with HTTP ${response.status}`)
+    const value: unknown = await response.json()
+    if (!value || typeof value !== 'object') throw new Error('Invalid wallet offer response')
+    const {offerUri, transactionCode} = value as Record<string, unknown>
+    if (typeof offerUri !== 'string' || typeof transactionCode !== 'string' || !/^\d{6}$/u.test(transactionCode)) {
+      throw new Error('Invalid wallet offer response')
+    }
+    const offer = new URL(offerUri)
+    if (offer.origin !== issuer.origin || offer.username || offer.password || offer.search || offer.hash
+      || !/^\/credential-offers\/[A-Za-z0-9_-]{43}$/u.test(offer.pathname)) {
+      throw new Error('Wallet offer URL does not match the trusted issuer')
+    }
+    return {offerUri: offer.href, transactionCode}
+  }
+
   async getIssuance(issuanceId: string): Promise<CredentialIssuanceReceipt> {
     const response = await this.fetch(
       `${this.baseUrl}/credential-issuances/${encodeURIComponent(issuanceId)}`,

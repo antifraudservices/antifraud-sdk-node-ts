@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Request a wallet offer using a backend-authenticated opaque authorization
+  reference and validate the returned offer against the trusted issuer.
+
 ## 0.3.2
 
 - Add typed independent controller-resource reads with optional employee filters.
