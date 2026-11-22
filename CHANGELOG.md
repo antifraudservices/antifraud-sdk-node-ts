@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.1 - 2026-11-23
 
 - Bind a reviewed mdoc offer to the exact approved revision and recheck it
   before signing and before returning the credential.
