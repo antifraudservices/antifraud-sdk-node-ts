@@ -234,7 +234,8 @@ organizational wallet and a synthetic dataset in
 ## Prepare an authorized wallet offer
 
 Use `AuthoritativeCredentialProviderClient.requestWalletCredentialOffer` from
-a backend configured with an HTTPS issuer origin and backend authentication.
+a backend configured with the exact HTTPS issuer URL and backend authentication.
+Include the tenant path when the issuer URL has one.
 Pass the opaque authorization reference from the verified professional journey.
 The issuer resolves the subject and returns the offer URL and a separate
 transaction code for the authenticated holder.
