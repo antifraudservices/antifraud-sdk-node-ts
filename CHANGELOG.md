@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- Bind a reviewed mdoc offer to the exact approved revision and recheck it
+  before signing and before returning the credential.
+
+- Persist wallet offers in a shared transactional store. Redeem each offer and
+  issuer nonce atomically, including concurrent submissions.
+
+- Build holder-bound ISO mdocs with the managed ES256 signing key and its
+  document signer certificate chain. Verify the signature before returning it.
+
+- Advertise ISO mdoc configurations alongside SD-JWT VC and transport the
+  issuer-provided, holder-bound IssuerSigned credential through OpenID4VCI.
+- Exercise OpenID4VCI redemption with a signed Proof of Age mdoc and verify
+  that the credential binds the wallet key proven in the request.
+
 ## 0.4.0 - 2026-11-22
 
 - Provide a shared OpenID4VCI issuer with by-reference offers, one-use grants,

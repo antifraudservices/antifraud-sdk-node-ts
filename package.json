@@ -6,6 +6,10 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
+    "./mdoc-credential-signer": {
+      "types": "./dist/mdoc-credential-signer.d.ts",
+      "default": "./dist/mdoc-credential-signer.js"
+    },
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
@@ -40,10 +44,13 @@
     "url": "git+https://github.com/antifraudservices/antifraud-sdk-node-ts.git"
   },
   "devDependencies": {
+    "@peculiar/x509": "3.1.0",
     "@types/node": "24.10.0",
+    "reflect-metadata": "0.2.2",
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@owf/mdoc": "0.10.0",
     "antifraud-data-utils-ts": "0.4.0",
     "antifraud-sdk-core-ts": "0.1.5",
     "jose": "4.15.9"

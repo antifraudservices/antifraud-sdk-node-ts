@@ -7,8 +7,13 @@ import {
   type PreAuthorizedWalletOfferOptions, type WalletIssuanceCommand,
 } from './preauthorized-wallet-offers.js'
 
+type CredentialConfiguration = Readonly<{scope?: string} & (
+  | {format: 'dc+sd-jwt'; vct: string}
+  | {format: 'mso_mdoc'; doctype: string}
+)>
+
 export type OpenId4VciIssuerOptions = Readonly<PreAuthorizedWalletOfferOptions & {
-  credentialConfigurations: Readonly<Record<string, {format: 'dc+sd-jwt'; vct: string; scope?: string}>>
+  credentialConfigurations: Readonly<Record<string, CredentialConfiguration>>
   /** Recheck issuer policy against current authoritative state, then sign. */
   issue(command: WalletIssuanceCommand, holderKey: JsonWebKey, configurationId: string): Promise<string | undefined>
 }>
@@ -59,8 +64,12 @@ export function createOpenId4VciIssuer(options: OpenId4VciIssuerOptions) {
   const offerPath = `${issuerPath}/credential-offers`
   const offers = createPreAuthorizedWalletOffers(options)
   const now = options.now ?? Date.now
-  const ids = Object.keys(credentialConfigurations)
-  if (!ids.length || ids.some(id => !id || !credentialConfigurations[id]?.vct)) {
+  const configurations = Object.entries(credentialConfigurations)
+  if (!configurations.length || configurations.some(([id, configuration]) => {
+    return !id || !(configuration.format === 'dc+sd-jwt'
+      ? configuration.vct?.trim()
+      : configuration.format === 'mso_mdoc' && configuration.doctype?.trim())
+  })) {
     throw new TypeError('At least one configured credential is required')
   }
 
@@ -74,7 +83,12 @@ export function createOpenId4VciIssuer(options: OpenId4VciIssuerOptions) {
       return requestError(400, 'invalid_credential_request')
     }
     const input = readCredentialRequest(await boundedBody(request, 16 * 1024))
-    if (!input || input.configurationId !== grant.configurationId) return requestError(400, 'invalid_credential_request')
+    if (!input || input.configurationId !== grant.configurationId
+      || !Object.hasOwn(credentialConfigurations, input.configurationId)) {
+      return requestError(400, 'invalid_credential_request')
+    }
+    const configuration = credentialConfigurations[input.configurationId]
+    if (!configuration) return requestError(400, 'invalid_credential_request')
     let proof: ReturnType<typeof verifyWalletProof>
     try {
       proof = verifyWalletProof(input.proof, credentialIssuer, now())
@@ -84,7 +98,13 @@ export function createOpenId4VciIssuer(options: OpenId4VciIssuerOptions) {
     if (!await grant.consumeNonce(proof.nonce, grant.command)) return requestError(400, 'invalid_nonce')
     const credential = await options.issue(grant.command, proof.holderKey, grant.configurationId)
     if (!credential) return requestError(400, 'credential_request_denied')
-    if (!credential.endsWith('~')) throw new Error('The signer must return a serialized SD-JWT credential')
+    if (configuration.format === 'mso_mdoc') {
+      if (Buffer.from(credential, 'base64url').toString('base64url') !== credential) {
+        throw new Error('The signer must return a base64url-encoded mdoc IssuerSigned structure')
+      }
+    } else if (!credential.endsWith('~')) {
+      throw new Error('The signer must return a serialized SD-JWT credential')
+    }
     return Response.json({credentials: [{credential}]}, {headers: noStore})
   }
 
@@ -118,8 +138,9 @@ export function createOpenId4VciIssuer(options: OpenId4VciIssuerOptions) {
         if (pathname === `/.well-known/openid-credential-issuer${issuerPath}`) return Response.json({
           credential_issuer: credentialIssuer, authorization_servers: [credentialIssuer],
           credential_endpoint: `${credentialIssuer}/credential`, nonce_endpoint: `${credentialIssuer}/nonce`,
-          credential_configurations_supported: Object.fromEntries(Object.entries(credentialConfigurations)
-            .map(([id, configuration]) => [id, {...configuration, cryptographic_binding_methods_supported: ['jwk'],
+          credential_configurations_supported: Object.fromEntries(configurations
+            .map(([id, configuration]) => [id, {...configuration,
+              cryptographic_binding_methods_supported: [configuration.format === 'mso_mdoc' ? 'cose_key' : 'jwk'],
               proof_types_supported: {jwt: {proof_signing_alg_values_supported: ['ES256']}}}])),
         })
         if (pathname === `/.well-known/oauth-authorization-server${issuerPath}`) return Response.json({
