@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Build holder-bound ISO mdocs with the managed ES256 signing key and its
+  document signer certificate chain. Verify the signature before returning it.
+
 - Advertise ISO mdoc configurations alongside SD-JWT VC and transport the
   issuer-provided, holder-bound IssuerSigned credential through OpenID4VCI.
 

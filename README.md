@@ -250,6 +250,13 @@ and returns the base64url representation of the signed CBOR `IssuerSigned`
 structure. Bind the document to the verified wallet key passed to the
 callback. Keep issuer signing and certificate custody on the trusted server.
 
+Import `createMdocCredentialSigner` from
+`antifraud-sdk-node-ts/mdoc-credential-signer` to compose that callback with
+a managed P-256 signer and its leaf-first, DER certificate chain. The signing
+callback receives the COSE Signature1 input and returns a 64-byte IEEE P1363
+signature. The adapter binds the wallet public key in the mdoc and checks the
+signature against the configured certificate before returning the credential.
+
 For Proof of Age, the evidence-recording client submits the review through
 its existing authorized workflow. The holder client requests an offer for
 its own identity. Resolve the issuer, holder and allowed thresholds on the
