@@ -7,6 +7,8 @@
 
 - Advertise ISO mdoc configurations alongside SD-JWT VC and transport the
   issuer-provided, holder-bound IssuerSigned credential through OpenID4VCI.
+- Exercise OpenID4VCI redemption with a signed Proof of Age mdoc and verify
+  that the credential binds the wallet key proven in the request.
 
 ## 0.4.0 - 2026-11-22
 
