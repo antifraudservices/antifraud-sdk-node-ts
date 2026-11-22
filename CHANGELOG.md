@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.4.0 - 2026-11-22
+
 - Provide a shared OpenID4VCI issuer with by-reference offers, one-use grants,
   wallet proof verification and a caller-supplied authoritative signer.
 
