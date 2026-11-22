@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Advertise ISO mdoc configurations alongside SD-JWT VC and transport the
+  issuer-provided, holder-bound IssuerSigned credential through OpenID4VCI.
+
 ## 0.4.0 - 2026-11-22
 
 - Provide a shared OpenID4VCI issuer with by-reference offers, one-use grants,

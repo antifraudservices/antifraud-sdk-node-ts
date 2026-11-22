@@ -239,3 +239,28 @@ Include the tenant path when the issuer URL has one.
 Pass the opaque authorization reference from the verified professional journey.
 The issuer resolves the subject and returns the offer URL and a separate
 transaction code for the authenticated holder.
+
+## Mobile document wallet offers
+
+Use the same tenant issuer with a credential configuration containing
+`format: 'mso_mdoc'` and the configured `doctype`. Keep the existing
+SD-JWT VC configurations for other credential types. On redemption, the
+issuer adapter supplies an `issue` callback that checks current authority
+and returns the base64url representation of the signed CBOR `IssuerSigned`
+structure. Bind the document to the verified wallet key passed to the
+callback. Keep issuer signing and certificate custody on the trusted server.
+
+For Proof of Age, the evidence-recording client submits the review through
+its existing authorized workflow. The holder client requests an offer for
+its own identity. Resolve the issuer, holder and allowed thresholds on the
+server and read the current evidence when preparing and redeeming the offer.
+Use `projectProofOfAgeMdoc` from the shared identity-assurance contracts,
+then pass only the resulting age attributes to the signer. The wallet
+invocation and the verifier request use
+`buildOpenId4VciOfferReference(..., 'age-verification')` and
+`buildMdocCredentialQuery` from the runtime-neutral SDK.
+
+The shared transport verifies the wallet's JWT proof. EU Age Verification
+interoperability also needs the applicable wallet-attestation checks, issuer
+certificate trust and a verifier that checks the requested result.
+[EU Age Verification Profile](https://docs.ageverification.dev/av-doc-technical-specification/docs/annexes/annex-A/annex-A-av-profile/)

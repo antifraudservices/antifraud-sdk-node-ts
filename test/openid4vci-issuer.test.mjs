@@ -6,16 +6,25 @@ import test from 'node:test'
 import { credentialIssuanceRequestFixture } from 'antifraud-data-utils-ts'
 import { createOpenId4VciIssuer } from '../dist/index.js'
 
-test('the tenant serves its own metadata, authenticates a wallet proof and issues once', async () => {
+test('the tenant advertises SD-JWT VC, authenticates a wallet proof and issues once', () => verifyIssuance('dc+sd-jwt'))
+test('the tenant advertises mdoc, authenticates a wallet proof and issues once', () => verifyIssuance('mso_mdoc'))
+
+async function verifyIssuance(format) {
   const issuer = 'https://gateway.example/synthetic-tenant/identity/wallet'
   const profile = 'test-professional'
+  // Opaque signer output for transport testing. Cryptographic mdoc signing is
+  // an independent provider boundary.
+  const output = format === 'mso_mdoc' ? Buffer.from([0xa0]).toString('base64url') : 'synthetic-issuer-signed-jwt~'
+  const configuration = format === 'mso_mdoc'
+    ? {format, doctype: 'eu.europa.ec.av.1'}
+    : {format, vct: issuer + '/type'}
   const proofKey = generateKeyPairSync('ec', { namedCurve: 'P-256' })
   const publicKey = proofKey.publicKey.export({ format: 'jwk' })
   const command = { ...credentialIssuanceRequestFixture, actorReference: 'urn:actor:fixture' }
   const records = new Map()
   let issuanceCount = 0
   const service = createOpenId4VciIssuer({
-    credentialIssuer: issuer, credentialConfigurations: {[profile]: {format: 'dc+sd-jwt', vct: issuer + '/type'}},
+    credentialIssuer: issuer, credentialConfigurations: {[profile]: configuration},
     secret: randomBytes(32),
     store: {
       create: async (ref, state) => { records.set(ref, state) },
@@ -36,13 +45,19 @@ test('the tenant serves its own metadata, authenticates a wallet proof and issue
       assert.deepEqual(holderKey, publicKey)
       assert.equal(configurationId, profile)
       issuanceCount++
-      return 'synthetic-issuer-signed-jwt~'
+      return output
     },
   })
   const dispatch = (href, options = {}) => service.handle(new Request(href, options))
   const url = new URL(issuer)
   const metadata = await dispatch(url.origin + '/.well-known/openid-credential-issuer' + url.pathname)
-  assert.equal((await metadata.json()).credential_issuer, issuer)
+  const published = await metadata.json()
+  assert.equal(published.credential_issuer, issuer)
+  for (const [key, value] of Object.entries(configuration)) {
+    assert.equal(published.credential_configurations_supported[profile][key], value)
+  }
+  assert.deepEqual(published.credential_configurations_supported[profile].cryptographic_binding_methods_supported,
+    [format === 'mso_mdoc' ? 'cose_key' : 'jwk'])
   assert.equal(await dispatch(url.origin + '/.well-known/openid-credential-issuer'), undefined)
   const prepared = await service.prepare(command, profile)
   assert.ok(prepared.offerUri.startsWith(issuer + '/credential-offers/'))
@@ -70,6 +85,7 @@ test('the tenant serves its own metadata, authenticates a wallet proof and issue
   const issued = await redeem(issuer)
   assert.equal(issued.status, 200)
   assert.equal(issued.headers.get('cache-control'), 'no-store')
+  assert.deepEqual(await issued.json(), {credentials: [{credential: output}]})
   assert.equal((await redeem(issuer)).status, 401)
   assert.equal(issuanceCount, 1)
-})
+}
