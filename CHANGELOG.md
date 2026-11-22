@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Persist wallet offers in a shared transactional store. Redeem each offer and
+  issuer nonce atomically, including concurrent submissions.
+
 - Build holder-bound ISO mdocs with the managed ES256 signing key and its
   document signer certificate chain. Verify the signature before returning it.
 

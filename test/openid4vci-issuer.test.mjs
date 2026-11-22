@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import { generateKeyPairSync, randomBytes, sign } from 'node:crypto'
 import test from 'node:test'
 import { credentialIssuanceRequestFixture } from 'antifraud-data-utils-ts'
-import { createOpenId4VciIssuer } from '../dist/index.js'
+import * as sdk from '../dist/index.js'
 import { createMdocIssuanceFixture } from './fixtures/mdoc-issuance.mjs'
 
 test('the tenant advertises SD-JWT VC, authenticates a wallet proof and issues once', () => verifyIssuance('dc+sd-jwt'))
@@ -22,24 +22,27 @@ async function verifyIssuance(format) {
   const publicKey = proofKey.publicKey.export({ format: 'jwk' })
   const command = { ...credentialIssuanceRequestFixture, actorReference: 'urn:actor:fixture' }
   const records = new Map()
+  let pending = Promise.resolve()
   let issuanceCount = 0
-  const service = createOpenId4VciIssuer({
+  const repository = {
+    runTransaction(operation) {
+      const result = pending.then(() => operation({
+        get: async (collection, id) => structuredClone(records.get(collection)?.get(id)),
+        put: async (collection, recordsToWrite) => {
+          const entries = records.get(collection) ?? new Map()
+          for (const record of recordsToWrite) entries.set(record.id, structuredClone(record))
+          records.set(collection, entries)
+          return true
+        },
+      }))
+      pending = result.then(() => undefined, () => undefined)
+      return result
+    },
+  }
+  const service = sdk.createOpenId4VciIssuer({
     credentialIssuer: issuer, credentialConfigurations: {[profile]: configuration},
     secret: randomBytes(32),
-    store: {
-      create: async (ref, state) => { records.set(ref, state) },
-      read: async ref => records.get(ref),
-      compareAndSet: async (ref, revision, state) => {
-        if (records.get(ref)?.revision !== revision) return false
-        records.set(ref, state)
-        return true
-      },
-      consumeForIssuance: async ({ reference, revision }) => {
-        if (records.get(reference)?.revision !== revision) return false
-        records.delete(reference)
-        return true
-      },
-    },
+    store: sdk.createTransactionalWalletOfferStore({credentialIssuer:issuer,repository}),
     issue: async (authorized, holderKey, configurationId) => {
       assert.deepEqual(authorized, command)
       assert.deepEqual(holderKey, publicKey)
@@ -84,7 +87,13 @@ async function verifyIssuance(format) {
   const unrelatedWallet = generateKeyPairSync('ec', {namedCurve: 'P-256'})
   assert.equal((await redeem(issuer, unrelatedWallet.privateKey)).status, 400)
   assert.equal(issuanceCount, 0)
-  const issued = await redeem(issuer)
+  const attempts = await Promise.all([redeem(issuer), redeem(issuer)])
+  const successes = attempts.filter(response => response.status === 200)
+  assert.equal(successes.length, 1)
+  const issued = successes[0]
+  const denied = attempts.find(response => response !== issued)
+  assert.deepEqual(await denied.json(), {error: denied.status === 401 ? 'invalid_token' : 'invalid_nonce'})
+  assert.ok(denied.status === 400 || denied.status === 401)
   assert.equal(issued.status, 200)
   assert.equal(issued.headers.get('cache-control'), 'no-store')
   const result = await issued.json()
