@@ -9,8 +9,9 @@ import { createMdocIssuanceFixture } from './fixtures/mdoc-issuance.mjs'
 
 test('the tenant advertises SD-JWT VC, authenticates a wallet proof and issues once', () => verifyIssuance('dc+sd-jwt'))
 test('the tenant advertises mdoc, authenticates a wallet proof and issues once', () => verifyIssuance('mso_mdoc'))
+test('a review superseded before wallet redemption cannot be signed', () => verifyIssuance('mso_mdoc', true))
 
-async function verifyIssuance(format) {
+async function verifyIssuance(format, supersedeReview = false) {
   const issuer = 'https://gateway.example/synthetic-tenant/identity/wallet'
   const profile = 'test-professional'
   const mdoc = format === 'mso_mdoc' ? await createMdocIssuanceFixture() : undefined
@@ -39,10 +40,26 @@ async function verifyIssuance(format) {
       return result
     },
   }
-  const service = sdk.createOpenId4VciIssuer({
+  const issuerOptions = {
     credentialIssuer: issuer, credentialConfigurations: {[profile]: configuration},
     secret: randomBytes(32),
     store: sdk.createTransactionalWalletOfferStore({credentialIssuer:issuer,repository}),
+  }
+  const authorizationReference = randomBytes(32).toString('base64url')
+  const preparedMdoc = mdoc?.command(publicKey)
+  let revision = randomBytes(32).toString('base64url')
+  const service = mdoc ? sdk.createReviewedMdocWalletIssuer({
+    ...issuerOptions, configurationId: profile, docType: mdoc.docType,
+    readReview: async reference => reference === authorizationReference ? {
+      revision, validUntil: preparedMdoc.validUntil.getTime(), namespaces: preparedMdoc.namespaces,
+    } : undefined,
+    sign: async (input) => {
+      assert.deepEqual(input.holderKey, publicKey)
+      issuanceCount++
+      return mdoc.signMdoc(input)
+    },
+  }) : sdk.createOpenId4VciIssuer({
+    ...issuerOptions,
     issue: async (authorized, holderKey, configurationId) => {
       assert.deepEqual(authorized, command)
       assert.deepEqual(holderKey, publicKey)
@@ -62,7 +79,7 @@ async function verifyIssuance(format) {
   assert.deepEqual(published.credential_configurations_supported[profile].cryptographic_binding_methods_supported,
     [format === 'mso_mdoc' ? 'cose_key' : 'jwk'])
   assert.equal(await dispatch(url.origin + '/.well-known/openid-credential-issuer'), undefined)
-  const prepared = await service.prepare(command, profile)
+  const prepared = mdoc ? await service.prepare(authorizationReference) : await service.prepare(command, profile)
   assert.ok(prepared.offerUri.startsWith(issuer + '/credential-offers/'))
   const offer = await (await dispatch(prepared.offerUri)).json()
   assert.equal(offer.credential_issuer, issuer)
@@ -87,6 +104,14 @@ async function verifyIssuance(format) {
   const unrelatedWallet = generateKeyPairSync('ec', {namedCurve: 'P-256'})
   assert.equal((await redeem(issuer, unrelatedWallet.privateKey)).status, 400)
   assert.equal(issuanceCount, 0)
+  if (supersedeReview) {
+    revision = randomBytes(32).toString('base64url')
+    const response = await redeem(issuer)
+    assert.equal(response.status, 400)
+    assert.deepEqual(await response.json(), {error:'credential_request_denied'})
+    assert.equal(issuanceCount, 0)
+    return
+  }
   const attempts = await Promise.all([redeem(issuer), redeem(issuer)])
   const successes = attempts.filter(response => response.status === 200)
   assert.equal(successes.length, 1)

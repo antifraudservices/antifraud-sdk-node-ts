@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Bind a reviewed mdoc offer to the exact approved revision and recheck it
+  before signing and before returning the credential.
+
 - Persist wallet offers in a shared transactional store. Redeem each offer and
   issuer nonce atomically, including concurrent submissions.
 
